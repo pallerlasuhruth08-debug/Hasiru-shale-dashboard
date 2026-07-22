@@ -70,16 +70,16 @@
   </div>
 
   <div class="panel">
-    <h2>Center-wise Breakdown</h2>
+    <h2>Center-wise Breakdown (unique volunteers)</h2>
     <table id="tbl">
       <thead><tr>
         <th data-k="center">Center</th>
         <th data-k="total">Volunteers</th>
         <th data-k="y">IE Done</th>
         <th data-k="pct">IE %</th>
+        <th data-k="n">Not Done</th>
+        <th data-k="nf">Not Found</th>
         <th data-k="pending">Pending</th>
-        <th data-k="unique">Unique</th>
-        <th data-k="dup">Dups</th>
       </tr></thead>
       <tbody></tbody>
     </table>
@@ -89,27 +89,29 @@
 </div>
 
 <script>
-const DATA = {"Banaswadi":{"total":12,"y":11,"n":0,"nf":1,"dup":1},"Bangalore Rural":{"total":11,"y":9,"n":1,"nf":1,"dup":1},"Bannerghatta Road":{"total":23,"y":22,"n":0,"nf":1,"dup":11},"Budigere Cross":{"total":17,"y":16,"n":1,"nf":0,"dup":1},"Chamarajanagar":{"total":1,"y":0,"n":0,"nf":1,"dup":0},"Chikkaballapura":{"total":30,"y":24,"n":5,"nf":1,"dup":5},"Chitradurga":{"total":1,"y":1,"n":0,"nf":0,"dup":0},"Davangere":{"total":2,"y":2,"n":0,"nf":0,"dup":1},"Electronic City":{"total":12,"y":11,"n":1,"nf":0,"dup":1},"Gadag":{"total":1,"y":1,"n":0,"nf":0,"dup":0},"Girinagar":{"total":11,"y":10,"n":0,"nf":1,"dup":2},"Hebbal":{"total":43,"y":36,"n":6,"nf":1,"dup":9},"Hubballi":{"total":4,"y":3,"n":0,"nf":1,"dup":0},"Indiranagar":{"total":4,"y":3,"n":1,"nf":0,"dup":0},"Jayanagar":{"total":4,"y":4,"n":0,"nf":0,"dup":0},"Kalaburagi":{"total":1,"y":0,"n":1,"nf":0,"dup":0},"Kanakapura Road":{"total":14,"y":14,"n":0,"nf":0,"dup":2},"Kolar":{"total":1,"y":1,"n":0,"nf":0,"dup":0},"Koppal":{"total":2,"y":1,"n":1,"nf":0,"dup":0},"Koramangala":{"total":11,"y":11,"n":0,"nf":0,"dup":1},"Malleswaram":{"total":23,"y":21,"n":0,"nf":2,"dup":6},"Marathahalli":{"total":14,"y":14,"n":0,"nf":0,"dup":0},"Mysuru":{"total":4,"y":3,"n":1,"nf":0,"dup":1},"Ramanagara":{"total":2,"y":2,"n":0,"nf":0,"dup":1},"Shivamogga":{"total":8,"y":8,"n":0,"nf":0,"dup":2},"Tumakuru":{"total":2,"y":2,"n":0,"nf":0,"dup":1},"Udupi":{"total":1,"y":1,"n":0,"nf":0,"dup":0},"Vijayanagar":{"total":22,"y":19,"n":3,"nf":0,"dup":5},"Whitefield":{"total":6,"y":6,"n":0,"nf":0,"dup":1},"KA - not identified":{"total":1,"y":0,"n":0,"nf":1,"dup":0},"KA - Others":{"total":7,"y":6,"n":1,"nf":0,"dup":0},"No Ishangam record":{"total":10,"y":0,"n":0,"nf":10,"dup":1},"Outside Karnataka":{"total":19,"y":16,"n":2,"nf":1,"dup":0},"Staff / Coordinators":{"total":1,"y":1,"n":0,"nf":0,"dup":0}};
+// Unique volunteers only — duplicate submissions removed (de-duplicated by phone number).
+// Per center: total = unique volunteers, y = IE completed, n = IE not completed, nf = not found in Ishangam.
+const DATA = {"Banaswadi":{"total":11,"y":10,"n":0,"nf":1},"Bangalore Rural":{"total":10,"y":8,"n":1,"nf":1},"Bannerghatta Road":{"total":12,"y":11,"n":0,"nf":1},"Budigere Cross":{"total":16,"y":15,"n":1,"nf":0},"Chamarajanagar":{"total":1,"y":0,"n":0,"nf":1},"Chikkaballapura":{"total":25,"y":21,"n":3,"nf":1},"Chitradurga":{"total":1,"y":1,"n":0,"nf":0},"Davangere":{"total":1,"y":1,"n":0,"nf":0},"Electronic City":{"total":11,"y":10,"n":1,"nf":0},"Gadag":{"total":1,"y":1,"n":0,"nf":0},"Girinagar":{"total":9,"y":8,"n":0,"nf":1},"Hebbal":{"total":34,"y":30,"n":3,"nf":1},"Hubballi":{"total":4,"y":3,"n":0,"nf":1},"Indiranagar":{"total":4,"y":3,"n":1,"nf":0},"Jayanagar":{"total":4,"y":4,"n":0,"nf":0},"Kalaburagi":{"total":1,"y":0,"n":1,"nf":0},"Kanakapura Road":{"total":12,"y":12,"n":0,"nf":0},"Kolar":{"total":1,"y":1,"n":0,"nf":0},"Koppal":{"total":2,"y":1,"n":1,"nf":0},"Koramangala":{"total":10,"y":10,"n":0,"nf":0},"Malleswaram":{"total":17,"y":15,"n":0,"nf":2},"Marathahalli":{"total":14,"y":14,"n":0,"nf":0},"Mysuru":{"total":4,"y":3,"n":1,"nf":0},"Ramanagara":{"total":1,"y":1,"n":0,"nf":0},"Shivamogga":{"total":6,"y":6,"n":0,"nf":0},"Tumakuru":{"total":1,"y":1,"n":0,"nf":0},"Udupi":{"total":1,"y":1,"n":0,"nf":0},"Vijayanagar":{"total":16,"y":14,"n":2,"nf":0},"Whitefield":{"total":5,"y":5,"n":0,"nf":0},"KA - not identified":{"total":1,"y":0,"n":0,"nf":1},"KA - Others":{"total":7,"y":6,"n":1,"nf":0},"No Ishangam record":{"total":9,"y":0,"n":0,"nf":9},"Outside Karnataka":{"total":19,"y":16,"n":2,"nf":1},"Staff / Coordinators":{"total":1,"y":1,"n":0,"nf":0}};
 const SNAPSHOT = "22 July 2026";
 const EDGE = new Set(["KA - not identified","KA - Others","No Ishangam record","Outside Karnataka","Staff / Coordinators"]);
 
 const centers = Object.keys(DATA);
-let T=0,Y=0,N=0,NF=0,DUP=0, kaVol=0, outVol=0;
-centers.forEach(c=>{const d=DATA[c];T+=d.total;Y+=d.y;N+=d.n;NF+=d.nf;DUP+=d.dup;
+let T=0,Y=0,N=0,NF=0, kaVol=0, outVol=0;
+centers.forEach(c=>{const d=DATA[c];T+=d.total;Y+=d.y;N+=d.n;NF+=d.nf;
   if(c==="Outside Karnataka") outVol+=d.total; else kaVol+=d.total;});
-const UNIQUE=T-DUP;
+const PENDING=N+NF;
 const iePct=Math.round(Y/T*100);
 const trackedCenters = centers.filter(c=>!EDGE.has(c)).length;
 
 document.getElementById('sub').textContent =
-  `Live snapshot as of ${SNAPSHOT} · ${T} volunteer submissions across ${centers.length} centers · center-wise metrics only (no personal data)`;
+  `Live snapshot as of ${SNAPSHOT} · ${T} unique volunteers across ${centers.length} centers · duplicate submissions removed · center-wise metrics only (no personal data)`;
 
 const kpis=[
-  ["Total Volunteers", T, "submissions across all centers"],
-  ["Unique Volunteers", UNIQUE, `${DUP} duplicate submissions flagged`],
-  ["IE Completed", Y, `${iePct}% of submissions`],
+  ["Unique Volunteers", T, "duplicate submissions removed"],
+  ["IE Completed", Y, `${iePct}% of volunteers`],
+  ["IE Pending", PENDING, `${N} not done · ${NF} not found`],
   ["Centers Engaged", trackedCenters, "tracked KA centers"],
-  ["Within Karnataka", kaVol, `${Math.round(kaVol/T*100)}% of volunteers`],
+  ["Within Karnataka", kaVol, `${Math.round(kaVol/T*100)}% · ${outVol} outside`],
 ];
 document.getElementById('kpis').innerHTML = kpis.map(k=>
   `<div class="kpi"><div class="v">${k[1]}</div><div class="l">${k[0]}</div>
@@ -127,7 +129,7 @@ new Chart(document.getElementById('bar'),{
   }]},
   options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false},
-      tooltip:{callbacks:{afterLabel:(ctx)=>{const d=DATA[ctx.label];return `IE done: ${d.y} · Unique: ${d.total-d.dup}`;}}}},
+      tooltip:{callbacks:{afterLabel:(ctx)=>{const d=DATA[ctx.label];return `IE done: ${d.y} · Pending: ${d.n+d.nf}`;}}}},
     scales:{x:{grid:{color:'rgba(255,255,255,.06)'},ticks:{color:'#a7d7be'}},
             y:{grid:{display:false},ticks:{color:'#eafff3',font:{size:11.5}}}}}
 });
@@ -155,8 +157,8 @@ new Chart(document.getElementById('geo'),{
 
 // ---- table ----
 const maxT=Math.max(...centers.map(c=>DATA[c].total));
-function rowsData(){return centers.map(c=>{const d=DATA[c];const done=d.total-d.nf?Math.round(d.y/d.total*100):0;
-  return {center:c,total:d.total,y:d.y,pct:Math.round(d.y/d.total*100),pending:d.n+d.nf,unique:d.total-d.dup,dup:d.dup,edge:EDGE.has(c)};});}
+function rowsData(){return centers.map(c=>{const d=DATA[c];
+  return {center:c,total:d.total,y:d.y,pct:Math.round(d.y/d.total*100),n:d.n,nf:d.nf,pending:d.n+d.nf,edge:EDGE.has(c)};});}
 let sortK='total',asc=false;
 function render(){
   const rows=rowsData().sort((a,b)=>{const av=a[sortK],bv=b[sortK];
@@ -169,16 +171,16 @@ function render(){
       <td>${r.total}<div class="bar" style="margin-top:5px"><i style="width:${r.total/maxT*100}%"></i></div></td>
       <td>${r.y}</td>
       <td><span class="pill" style="background:${col}22;color:${col}">${r.pct}%</span></td>
-      <td>${r.pending||''}</td>
-      <td>${r.unique}</td>
-      <td>${r.dup||''}</td></tr>`;}).join('');
+      <td>${r.n||''}</td>
+      <td>${r.nf||''}</td>
+      <td>${r.pending||''}</td></tr>`;}).join('');
 }
 document.querySelectorAll('#tbl thead th').forEach(th=>th.onclick=()=>{
   const k=th.dataset.k; if(sortK===k)asc=!asc; else{sortK=k;asc=false;} render();});
 render();
 
 document.getElementById('foot').textContent=
-  `IE status verified against Ishangam (Santosha). "Not found" = no Ishangam record for that number. Edge buckets (yellow) = Outside Karnataka, unmapped, and staff. Source: #HasiruShaale center-wise sheet.`;
+  `Unique volunteers only — duplicate submissions de-duplicated by phone number. IE status verified against Ishangam (Santosha); "Not found" = no Ishangam record for that number. Pending = Not done + Not found. Edge buckets (yellow) = Outside Karnataka, unmapped, and staff. Source: #HasiruShaale center-wise sheet.`;
 </script>
 </body>
 </html>
