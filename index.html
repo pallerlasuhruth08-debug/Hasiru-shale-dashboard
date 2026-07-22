@@ -29,9 +29,11 @@
   .btn.sm{padding:6px 12px;font-size:12.5px;border-radius:8px}
   .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);font-weight:600}
   .btn.red{background:linear-gradient(150deg,#b91c1c,#ef4444);color:#fff}
-  input,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);
-    background:#04281c;color:var(--ink);font-size:14px;outline:none}
-  input::placeholder{color:#6fae90}
+  input,select,textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);
+    background:#04281c;color:var(--ink);font-size:14px;outline:none;font-family:inherit}
+  textarea{resize:vertical}
+  input::placeholder,textarea::placeholder{color:#6fae90}
+  code{background:#04281c;border-radius:4px;padding:1px 5px;font-size:12px;color:var(--g2)}
   .panel{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:18px 20px}
   .panel h2{font-size:13.5px;margin:0 0 14px;font-weight:700;color:#d6ffe7;text-transform:uppercase;letter-spacing:.6px}
   .msg{font-size:13px;margin-top:12px;min-height:18px}
@@ -192,20 +194,29 @@
     <div class="panel" style="margin-bottom:18px">
       <h2>Participant Directory (<span id="dirCount">0</span>)</h2>
       <div class="filters">
-        <input id="q" type="text" placeholder="Search name, phone, email, pincode…" oninput="renderDir()"/>
-        <select id="fCenter" onchange="renderDir()"></select>
-        <select id="fPref" onchange="renderDir()">
+        <input id="q" type="text" placeholder="Search name, phone, email, pincode…" oninput="onFilterChange()"/>
+        <select id="fCenter" onchange="onFilterChange()"></select>
+        <select id="fPref" onchange="onFilterChange()">
           <option value="">All preferences</option>
           <option value="Calling">Calling Support</option>
           <option value="Day Visit">Day Visit</option>
           <option value="Long-term">Long-term at SSB</option>
           <option value="__ns">Not specified</option>
         </select>
-        <select id="fIE" onchange="renderDir()">
+        <select id="fIE" onchange="onFilterChange()">
           <option value="">All IE status</option>
           <option value="Yes">IE done</option>
           <option value="No">IE not done</option>
           <option value="Not found">No Ishangam record</option>
+        </select>
+        <select id="fCallStatus" onchange="onFilterChange()">
+          <option value="">All call status</option>
+          <option value="__none">Not called</option>
+          <option value="Connected">Connected</option>
+          <option value="No Answer">No Answer</option>
+          <option value="Not Interested">Not Interested</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Callback Later">Callback Later</option>
         </select>
       </div>
       <div class="tblscroll">
@@ -220,6 +231,19 @@
           <tbody></tbody>
         </table>
       </div>
+      <div id="dirPager" style="display:flex;gap:6px;align-items:center;margin-top:12px;flex-wrap:wrap"></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:18px">
+      <h2>Message Templates</h2>
+      <div class="sub" style="margin-bottom:10px">Applies to whoever matches the filters in Participant Directory above (<b id="msgAudienceCount">0</b> people). Use <code>{name}</code> in your message — it's replaced with each volunteer's first name.</div>
+      <textarea id="msgTemplate" rows="3" placeholder="Hi {name}, this is a reminder about #HasiruShaale volunteering — could you let us know your availability?"></textarea>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px">
+        <button class="btn sm" onclick="startMsgRun()">Start sending</button>
+        <button class="btn ghost sm" id="msgNextBtn" onclick="sendNextMsg()" disabled>Send to next &amp; advance</button>
+        <span class="sub" id="msgProgress"></span>
+      </div>
+      <div class="msg" id="msgMsg"></div>
     </div>
 
     <div class="panel" style="margin-bottom:18px">
@@ -268,6 +292,8 @@ const PC = {c:'#fbbf24', d:'#4ade80', l:'#38bdf8', ns:'#94a3b8'};
 const $ = id => document.getElementById(id);
 let MODE='login', PROFILE=null, VOLS=[], CALLS=[], ieChart=null, prefChart=null, centerChart=null, sortK='name', asc=true, CM_VID=null;
 const OUTCOME_COLOR = {Connected:'#38bdf8','No Answer':'#fde68a','Not Interested':'#fca5a5',Confirmed:'#22c55e','Callback Later':'#fbbf24'};
+const PAGE_SIZE = 50;
+let dirPage = 1, MSG_QUEUE = [], MSG_IDX = 0;
 
 function show(view){ ['boot','authView','pendingView','appView'].forEach(v=>$(v).classList.add('hide')); $(view).classList.remove('hide'); }
 
@@ -430,28 +456,81 @@ function callStatusPill(vid){
   return `<span class="pill" style="background:${col}22;color:${col}">${esc(c.outcome)}</span>`;
 }
 
-function renderDir(){
-  const q=$('q').value.trim().toLowerCase(), fc=$('fCenter').value, fp=$('fPref').value, fi=$('fIE').value;
-  let rows = VOLS.filter(v=>{
+function filteredRows(){
+  const q=$('q').value.trim().toLowerCase(), fc=$('fCenter').value, fp=$('fPref').value, fi=$('fIE').value, fcs=$('fCallStatus').value;
+  return VOLS.filter(v=>{
     if(fc && v.center!==fc) return false;
     if(fp==='__ns'){ if(v.preference) return false; } else if(fp && v.preference!==fp) return false;
     if(fi && (v.ie_status||'')!==fi) return false;
+    if(fcs){ const c=latestCall(v.id); const status=c?c.outcome:'__none'; if(status!==fcs) return false; }
     if(q){ const hay=((v.name||'')+' '+(v.whatsapp||'')+' '+(v.email||'')+' '+(v.pincode||'')+' '+(v.center||'')).toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
   });
+}
+function onFilterChange(){ dirPage=1; renderDir(); }
+function renderDir(){
+  let rows = filteredRows();
   rows.sort((a,b)=>{ const av=(a[sortK]||'').toString().toLowerCase(), bv=(b[sortK]||'').toString().toLowerCase(); return asc? av.localeCompare(bv):bv.localeCompare(av); });
   $('dirCount').textContent = rows.length;
-  $('dirTbl').querySelector('tbody').innerHTML = rows.map(v=>`<tr>
+  const totalPages = Math.max(1, Math.ceil(rows.length/PAGE_SIZE));
+  if(dirPage>totalPages) dirPage=totalPages;
+  const start=(dirPage-1)*PAGE_SIZE;
+  const pageRows = rows.slice(start, start+PAGE_SIZE);
+  $('dirTbl').querySelector('tbody').innerHTML = pageRows.map(v=>`<tr>
     <td>${esc(v.name)}</td><td>${esc(v.center)}</td>
     <td>${contactLinks(v)}</td><td>${esc(v.email)}</td>
     <td>${iePill(v.ie_status)}</td><td>${esc(v.pincode)}</td>
     <td>${prefPill(v.preference)}</td><td style="white-space:normal;color:var(--muted)">${esc(v.languages)}</td>
     <td>${callStatusPill(v.id)}<button class="logbtn" onclick="openCallModal(${v.id})">Log call</button></td>
   </tr>`).join('') || '<tr><td colspan="9" style="color:var(--muted);padding:18px">No matches.</td></tr>';
+  renderPager(totalPages, rows.length);
+  const msgCountEl = $('msgAudienceCount');
+  if(msgCountEl) msgCountEl.textContent = rows.length;
 }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
 
-document.querySelectorAll('#dirTbl thead th').forEach(th=>th.onclick=()=>{ const k=th.dataset.k; if(sortK===k)asc=!asc; else{sortK=k;asc=true;} renderDir(); });
+function renderPager(totalPages, total){
+  if(total===0){ $('dirPager').innerHTML=''; return; }
+  const start=(dirPage-1)*PAGE_SIZE+1, end=Math.min(dirPage*PAGE_SIZE, total);
+  let html = `<span class="sub">${start}–${end} of ${total}</span><span style="flex:1"></span>`;
+  html += `<button class="btn ghost sm" ${dirPage<=1?'disabled':''} onclick="gotoPage(${dirPage-1})">Prev</button>`;
+  let lo=Math.max(1,dirPage-3), hi=Math.min(totalPages,lo+6); lo=Math.max(1,hi-6);
+  for(let p=lo;p<=hi;p++){
+    html += `<button class="btn ${p===dirPage?'':'ghost'} sm" onclick="gotoPage(${p})">${p}</button>`;
+  }
+  html += `<button class="btn ghost sm" ${dirPage>=totalPages?'disabled':''} onclick="gotoPage(${dirPage+1})">Next</button>`;
+  $('dirPager').innerHTML = html;
+}
+function gotoPage(p){ dirPage=p; renderDir(); }
+
+document.querySelectorAll('#dirTbl thead th').forEach(th=>th.onclick=()=>{ const k=th.dataset.k; if(sortK===k)asc=!asc; else{sortK=k;asc=true;} dirPage=1; renderDir(); });
+
+// -------- message templates --------
+function firstName(full){ return (full||'').trim().split(/\s+/)[0] || 'there'; }
+function fillTemplate(tpl, v){ return tpl.replace(/\{name\}/gi, firstName(v.name)); }
+function startMsgRun(){
+  const tpl = $('msgTemplate').value.trim();
+  if(!tpl){ setMsg('msgMsg','Write a message first.', false); return; }
+  MSG_QUEUE = filteredRows().filter(v=>digits10(v.whatsapp||v.calling));
+  MSG_IDX = 0;
+  if(!MSG_QUEUE.length){ setMsg('msgMsg','No matching volunteers with a phone number in the current filters.', false); $('msgNextBtn').disabled=true; return; }
+  $('msgNextBtn').disabled=false;
+  updateMsgProgress();
+  setMsg('msgMsg','Queued '+MSG_QUEUE.length+' people. Click "Send to next & advance" to open WhatsApp for the first one, pre-filled — you hit Send there, then come back and click again for the next.', true);
+}
+function updateMsgProgress(){ $('msgProgress').textContent = MSG_QUEUE.length ? Math.min(MSG_IDX,MSG_QUEUE.length)+' of '+MSG_QUEUE.length+' opened' : ''; }
+function sendNextMsg(){
+  if(MSG_IDX>=MSG_QUEUE.length){ setMsg('msgMsg','Done — everyone in the list has been opened.', true); $('msgNextBtn').disabled=true; return; }
+  const v = MSG_QUEUE[MSG_IDX];
+  const tpl = $('msgTemplate').value.trim();
+  const text = encodeURIComponent(fillTemplate(tpl, v));
+  const d = digits10(v.whatsapp||v.calling);
+  window.open('https://wa.me/91'+d+'?text='+text, '_blank');
+  MSG_IDX++;
+  updateMsgProgress();
+  if(MSG_IDX>=MSG_QUEUE.length){ setMsg('msgMsg','Done — everyone in the list has been opened.', true); $('msgNextBtn').disabled=true; }
+  else { setMsg('msgMsg','Opened for '+esc(v.name)+'. Send it in the WhatsApp tab, then click again for the next person.', true); }
+}
 
 // -------- call log modal --------
 function openCallModal(vid){
