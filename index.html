@@ -78,7 +78,7 @@
         <th data-k="y">IE Done</th>
         <th data-k="pct">IE %</th>
         <th data-k="n">Not Done</th>
-        <th data-k="nf">Not Found</th>
+        <th data-k="nf">No Ishangam Record</th>
         <th data-k="pending">Pending</th>
       </tr></thead>
       <tbody></tbody>
@@ -109,7 +109,7 @@ document.getElementById('sub').textContent =
 const kpis=[
   ["Unique Volunteers", T, "duplicate submissions removed"],
   ["IE Completed", Y, `${iePct}% of volunteers`],
-  ["IE Pending", PENDING, `${N} not done · ${NF} not found`],
+  ["IE Pending", PENDING, `${N} not done · ${NF} no Ishangam record`],
   ["Centers Engaged", trackedCenters, "tracked KA centers"],
   ["Within Karnataka", kaVol, `${Math.round(kaVol/T*100)}% · ${outVol} outside`],
 ];
@@ -137,14 +137,14 @@ new Chart(document.getElementById('bar'),{
 // ---- donut: IE status ----
 new Chart(document.getElementById('donut'),{
   type:'doughnut',
-  data:{labels:['Completed','Not completed','Not found in Ishangam'],
+  data:{labels:['Completed','Not completed','No record in Ishangam'],
     datasets:[{data:[Y,N,NF],backgroundColor:['#22c55e','#fde68a','#6b7280'],borderColor:'#0b3b2e',borderWidth:3}]},
   options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}
 });
 document.getElementById('dlegend').innerHTML=
   `<span><i class="dot" style="background:#22c55e"></i>Completed ${Y}</span>
    <span><i class="dot" style="background:#fde68a"></i>Not completed ${N}</span>
-   <span><i class="dot" style="background:#6b7280"></i>Not found ${NF}</span>`;
+   <span><i class="dot" style="background:#6b7280"></i>No record in Ishangam ${NF}</span>`;
 
 // ---- geo donut ----
 new Chart(document.getElementById('geo'),{
@@ -180,7 +180,7 @@ document.querySelectorAll('#tbl thead th').forEach(th=>th.onclick=()=>{
 render();
 
 document.getElementById('foot').textContent=
-  `Unique volunteers only — duplicate submissions de-duplicated by phone number. IE status verified against Ishangam (Santosha); "Not found" = no Ishangam record for that number. Pending = Not done + Not found. Edge buckets (yellow) = Outside Karnataka, unmapped, and staff. Source: #HasiruShaale center-wise sheet.`;
+  `Unique volunteers only — duplicate submissions de-duplicated by phone number. IE status verified against Ishangam (Santosha); "No record in Ishangam" = that number matched no Ishangam contact (may be an alternate number). Pending = Not done + No record in Ishangam. Edge buckets (yellow) = Outside Karnataka, unmapped, and staff. Source: #HasiruShaale center-wise sheet.`;
 </script>
 </body>
 </html>
