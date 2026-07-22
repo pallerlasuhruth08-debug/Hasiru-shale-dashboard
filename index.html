@@ -4,222 +4,362 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="robots" content="noindex"/>
-<title>#HasiruShaale — Green School Volunteer Dashboard</title>
+<title>#HasiruShaale — Green School Volunteer Portal</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bg1:#052e16; --bg2:#064e3b; --card:#0b3b2e; --card2:#0e4735;
     --line:#1f6b4f; --ink:#eafff3; --muted:#a7d7be;
-    --g1:#22c55e; --g2:#4ade80; --g3:#86efac; --g4:#16a34a; --g5:#15803d;
-    --warn:#fde68a; --bad:#fca5a5; --edge:#facc15;
+    --g1:#22c55e; --g2:#4ade80; --g4:#16a34a; --g5:#15803d;
+    --edge:#facc15; --bad:#fca5a5;
+    --pc:#fbbf24; --pd:#4ade80; --pl:#38bdf8; --pns:#94a3b8;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    color:var(--ink);background:linear-gradient(160deg,var(--bg1),var(--bg2) 70%);min-height:100vh;padding:28px 20px 60px}
-  .wrap{max-width:1180px;margin:0 auto}
-  .head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:6px}
-  .leaf{font-size:34px}
-  h1{font-size:26px;margin:0;font-weight:800;letter-spacing:.2px}
-  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 22px}
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:14px;margin-bottom:24px}
-  .kpi{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:16px 18px;position:relative;overflow:hidden}
-  .kpi:after{content:"";position:absolute;right:-18px;bottom:-18px;width:70px;height:70px;background:radial-gradient(circle,rgba(74,222,128,.25),transparent 70%);border-radius:50%}
-  .kpi .v{font-size:30px;font-weight:800;line-height:1}
-  .kpi .l{color:var(--muted);font-size:12.5px;margin-top:7px;text-transform:uppercase;letter-spacing:.5px}
-  .grid{display:grid;grid-template-columns:1.55fr 1fr;gap:18px;margin-bottom:18px}
-  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+    color:var(--ink);background:linear-gradient(160deg,var(--bg1),var(--bg2) 70%);min-height:100vh}
+  a{color:var(--g2)}
+  .wrap{max-width:1180px;margin:0 auto;padding:24px 18px 60px}
+  .leaf{font-size:32px}
+  h1{font-size:23px;margin:0;font-weight:800}
+  .sub{color:var(--muted);font-size:13px;margin:3px 0 0}
+  .btn{background:linear-gradient(150deg,var(--g4),var(--g2));color:#04240f;border:none;border-radius:10px;
+    padding:11px 16px;font-weight:800;font-size:14px;cursor:pointer}
+  .btn:disabled{opacity:.5;cursor:default}
+  .btn.sm{padding:6px 12px;font-size:12.5px;border-radius:8px}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);font-weight:600}
+  .btn.red{background:linear-gradient(150deg,#b91c1c,#ef4444);color:#fff}
+  input,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);
+    background:#04281c;color:var(--ink);font-size:14px;outline:none}
+  input::placeholder{color:#6fae90}
   .panel{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:18px 20px}
-  .panel h2{font-size:14px;margin:0 0 14px;font-weight:700;color:#d6ffe7;text-transform:uppercase;letter-spacing:.6px}
-  .barbox{height:760px}
-  .donutbox{height:300px;display:flex;align-items:center;justify-content:center}
-  .legend{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:14px;font-size:12.5px;color:var(--muted)}
-  .dot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:middle}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{text-align:right;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.07)}
-  th:first-child,td:first-child{text-align:left}
-  thead th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;user-select:none}
-  tbody tr:hover{background:rgba(74,222,128,.07)}
-  .pill{display:inline-block;min-width:44px;text-align:center;padding:2px 8px;border-radius:20px;font-weight:700;font-size:12px}
-  .edge td:first-child{color:var(--edge)}
-  .bar{height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
-  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--g5),var(--g2))}
-  .foot{color:var(--muted);font-size:12px;margin-top:22px;text-align:center}
+  .panel h2{font-size:13.5px;margin:0 0 14px;font-weight:700;color:#d6ffe7;text-transform:uppercase;letter-spacing:.6px}
+  .msg{font-size:13px;margin-top:12px;min-height:18px}
+  .msg.err{color:var(--bad)} .msg.ok{color:var(--g2)}
+  /* auth */
+  .authbox{max-width:400px;margin:8vh auto 0}
+  .authcard{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:18px;padding:26px 24px}
+  .tabs{display:flex;gap:8px;margin:16px 0 18px}
+  .tabs button{flex:1;padding:9px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--muted);font-weight:700;cursor:pointer}
+  .tabs button.active{background:var(--g5);color:#eafff3;border-color:var(--g5)}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin:0 0 5px}
+  /* app */
+  .topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .topbar .who{margin-left:auto;text-align:right;font-size:12px;color:var(--muted)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .kpi{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .kpi .v{font-size:26px;font-weight:800;line-height:1}
+  .kpi .l{color:var(--muted);font-size:11.5px;margin-top:6px;text-transform:uppercase;letter-spacing:.5px}
+  .kpi .s{color:var(--muted);font-size:11px;margin-top:3px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+  .donutbox{height:230px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:12px;font-size:12px;color:var(--muted)}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap}
+  thead th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;position:sticky;top:0;background:#0b3b2e}
+  tbody tr:hover{background:rgba(74,222,128,.06)}
+  .tblscroll{max-height:560px;overflow:auto;border-radius:10px}
+  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-weight:700;font-size:11px}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .filters input{flex:2;min-width:180px} .filters select{flex:1;min-width:130px}
+  .pending{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+  .pending .e{font-weight:700} .pending .g{margin-left:auto;display:flex;gap:8px}
+  .hide{display:none!important}
+  .foot{color:var(--muted);font-size:11.5px;margin-top:22px;text-align:center;line-height:1.6}
+  .spin{color:var(--muted);text-align:center;padding:40px;font-size:14px}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="head"><div class="leaf">🌱</div><div><h1>#HasiruShaale — Green School Volunteer Dashboard</h1></div></div>
-  <div class="sub" id="sub"></div>
 
-  <div class="kpis" id="kpis"></div>
-
-  <div class="grid">
-    <div class="panel">
-      <h2>Volunteers by Center</h2>
-      <div class="barbox"><canvas id="bar"></canvas></div>
+<!-- ===================== AUTH VIEW ===================== -->
+<div id="authView" class="hide">
+  <div class="authbox">
+    <div style="text-align:center;margin-bottom:14px">
+      <div class="leaf">🌱</div>
+      <h1>#HasiruShaale Volunteer Portal</h1>
+      <div class="sub">Green School volunteer directory — sign in to continue</div>
     </div>
-    <div class="panel">
-      <h2>Inner Engineering Status</h2>
-      <div class="donutbox"><canvas id="donut"></canvas></div>
-      <div class="legend" id="dlegend"></div>
-      <div style="margin-top:22px">
-        <h2>Karnataka vs Outside</h2>
-        <div class="donutbox" style="height:230px"><canvas id="geo"></canvas></div>
+    <div class="authcard">
+      <div class="tabs">
+        <button id="tabLogin" class="active" onclick="showAuth('login')">Log in</button>
+        <button id="tabSignup" onclick="showAuth('signup')">Sign up</button>
       </div>
+      <div class="field"><label>Email</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com"/></div>
+      <div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="••••••••"/></div>
+      <div class="field" id="nameField"><label>Full name</label><input id="fullName" type="text" placeholder="Your name"/></div>
+      <button class="btn" id="authBtn" style="width:100%" onclick="doAuth()">Log in</button>
+      <div class="msg" id="authMsg"></div>
     </div>
+    <div class="foot">Access is approval-based. New sign-ups are reviewed by an administrator before the directory unlocks.</div>
   </div>
-
-  <div class="panel" style="margin-bottom:18px">
-    <h2>Volunteering Preference (unique volunteers)</h2>
-    <div class="grid" style="grid-template-columns:1fr 1.3fr;gap:18px;margin-bottom:0;align-items:center">
-      <div class="donutbox" style="height:250px"><canvas id="segdonut"></canvas></div>
-      <div class="kpis" id="segkpis" style="margin-bottom:0"></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <h2>Center-wise Breakdown (unique volunteers)</h2>
-    <table id="tbl">
-      <thead><tr>
-        <th data-k="center">Center</th>
-        <th data-k="total">Volunteers</th>
-        <th data-k="y">IE Done</th>
-        <th data-k="pct">IE %</th>
-        <th data-k="n">Not Done</th>
-        <th data-k="nf">No Ishangam Record</th>
-        <th data-k="pending">Pending</th>
-        <th data-k="c" title="Calling Support (remote)">Calling</th>
-        <th data-k="d" title="Day Visit to schools">Day Visit</th>
-        <th data-k="l" title="Long-term stay at Sadhguru Sannidhi Chikkaballapura">Long-term</th>
-        <th data-k="ns" title="Preference not specified in the form">Not Spec.</th>
-      </tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <div class="foot" id="foot"></div>
 </div>
 
+<!-- ===================== PENDING VIEW ===================== -->
+<div id="pendingView" class="hide">
+  <div class="authbox">
+    <div class="authcard" style="text-align:center">
+      <div class="leaf">⏳</div>
+      <h1 style="font-size:20px;margin-top:8px">Awaiting approval</h1>
+      <p class="sub" id="pendingMsg" style="margin:12px 0 18px;line-height:1.6"></p>
+      <button class="btn ghost" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APP VIEW ===================== -->
+<div id="appView" class="hide">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="leaf">🌱</div>
+      <div>
+        <h1>#HasiruShaale — Volunteer Portal</h1>
+        <div class="sub" id="appSub"></div>
+      </div>
+      <div class="who">
+        <div id="whoName"></div>
+        <button class="btn ghost sm" style="margin-top:6px" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
+
+    <div id="adminPanel" class="panel hide" style="margin-bottom:18px">
+      <h2>Pending approvals <span id="pendCount" style="color:var(--edge)"></span></h2>
+      <div id="pendList"></div>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>Inner Engineering Status</h2>
+        <div class="donutbox"><canvas id="ieDonut"></canvas></div>
+        <div class="legend" id="ieLegend"></div>
+      </div>
+      <div class="panel">
+        <h2>Volunteering Preference</h2>
+        <div class="donutbox"><canvas id="prefDonut"></canvas></div>
+        <div class="legend" id="prefLegend"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:18px">
+      <h2>Participant Directory (<span id="dirCount">0</span>)</h2>
+      <div class="filters">
+        <input id="q" type="text" placeholder="Search name, phone, email, pincode…" oninput="renderDir()"/>
+        <select id="fCenter" onchange="renderDir()"></select>
+        <select id="fPref" onchange="renderDir()">
+          <option value="">All preferences</option>
+          <option value="Calling">Calling Support</option>
+          <option value="Day Visit">Day Visit</option>
+          <option value="Long-term">Long-term at SSB</option>
+          <option value="__ns">Not specified</option>
+        </select>
+        <select id="fIE" onchange="renderDir()">
+          <option value="">All IE status</option>
+          <option value="Yes">IE done</option>
+          <option value="No">IE not done</option>
+          <option value="Not found">No Ishangam record</option>
+        </select>
+      </div>
+      <div class="tblscroll">
+        <table id="dirTbl">
+          <thead><tr>
+            <th data-k="name">Name</th><th data-k="center">Centre</th>
+            <th data-k="whatsapp">WhatsApp</th><th data-k="email">Email</th>
+            <th data-k="ie_status">IE</th><th data-k="pincode">Pincode</th>
+            <th data-k="preference">Preference</th><th data-k="languages">Languages</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="foot" id="foot"></div>
+  </div>
+</div>
+
+<div id="boot" class="spin">Loading…</div>
+
 <script>
-// Unique volunteers only — duplicate submissions removed (de-duplicated by phone number).
-// Per center: total = unique volunteers, y = IE completed, n = IE not completed, nf = not found in Ishangam.
-const DATA = {"Banaswadi":{"total":11,"y":10,"n":0,"nf":1},"Bangalore Rural":{"total":10,"y":8,"n":1,"nf":1},"Bannerghatta Road":{"total":13,"y":12,"n":0,"nf":1},"Budigere Cross":{"total":18,"y":17,"n":1,"nf":0},"Chamarajanagar":{"total":1,"y":0,"n":0,"nf":1},"Chikkaballapura":{"total":25,"y":21,"n":3,"nf":1},"Chitradurga":{"total":1,"y":1,"n":0,"nf":0},"Davangere":{"total":1,"y":1,"n":0,"nf":0},"Electronic City":{"total":11,"y":10,"n":1,"nf":0},"Gadag":{"total":1,"y":1,"n":0,"nf":0},"Girinagar":{"total":11,"y":10,"n":0,"nf":1},"Hebbal":{"total":37,"y":32,"n":4,"nf":1},"Hubballi":{"total":4,"y":3,"n":0,"nf":1},"Indiranagar":{"total":5,"y":4,"n":1,"nf":0},"Jayanagar":{"total":4,"y":4,"n":0,"nf":0},"Kalaburagi":{"total":1,"y":0,"n":1,"nf":0},"Kanakapura Road":{"total":12,"y":12,"n":0,"nf":0},"Kolar":{"total":1,"y":1,"n":0,"nf":0},"Koppal":{"total":2,"y":1,"n":1,"nf":0},"Koramangala":{"total":10,"y":10,"n":0,"nf":0},"Malleswaram":{"total":19,"y":16,"n":1,"nf":2},"Marathahalli":{"total":15,"y":15,"n":0,"nf":0},"Mysuru":{"total":4,"y":3,"n":1,"nf":0},"Ramanagara":{"total":2,"y":2,"n":0,"nf":0},"Shivamogga":{"total":6,"y":6,"n":0,"nf":0},"Tumakuru":{"total":2,"y":2,"n":0,"nf":0},"Udupi":{"total":1,"y":1,"n":0,"nf":0},"Vijayanagar":{"total":18,"y":16,"n":2,"nf":0},"Whitefield":{"total":5,"y":5,"n":0,"nf":0},"KA - not identified":{"total":1,"y":0,"n":0,"nf":1},"KA - Others":{"total":7,"y":6,"n":1,"nf":0},"No Ishangam record":{"total":10,"y":0,"n":0,"nf":10},"Outside Karnataka":{"total":21,"y":18,"n":2,"nf":1},"Staff / Coordinators":{"total":1,"y":1,"n":0,"nf":0}};
-const SNAPSHOT = "22 July 2026";
+const SB_URL = 'https://zbqetpvgipgagmmyupcn.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpicWV0cHZnaXBnYWdtbXl1cGNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MTM3MDksImV4cCI6MjEwMDI4OTcwOX0.O1vc899acxertmdatCgyO0pLFvoQpc7zUSUHChGdQV0';
+const sb = supabase.createClient(SB_URL, SB_KEY);
 const EDGE = new Set(["KA - not identified","KA - Others","No Ishangam record","Outside Karnataka","Staff / Coordinators"]);
-// Volunteering preference (from form Q "available duration for volunteering"), unique volunteers.
-// c = Calling Support (remote), d = Day Visit, l = Long-term stay at SSB, ns = Not specified (question left blank).
-const SEG = {"Banaswadi":{"c":3,"d":1,"l":2,"ns":5},"Bangalore Rural":{"c":0,"d":5,"l":0,"ns":5},"Bannerghatta Road":{"c":2,"d":8,"l":0,"ns":3},"Budigere Cross":{"c":0,"d":7,"l":2,"ns":9},"Chamarajanagar":{"c":0,"d":0,"l":0,"ns":1},"Chikkaballapura":{"c":0,"d":5,"l":0,"ns":20},"Chitradurga":{"c":0,"d":0,"l":1,"ns":0},"Davangere":{"c":0,"d":0,"l":0,"ns":1},"Electronic City":{"c":0,"d":5,"l":2,"ns":4},"Gadag":{"c":0,"d":0,"l":1,"ns":0},"Girinagar":{"c":0,"d":5,"l":0,"ns":6},"Hebbal":{"c":4,"d":13,"l":3,"ns":17},"Hubballi":{"c":0,"d":2,"l":1,"ns":1},"Indiranagar":{"c":0,"d":2,"l":0,"ns":3},"Jayanagar":{"c":0,"d":1,"l":1,"ns":2},"Kalaburagi":{"c":0,"d":0,"l":0,"ns":1},"Kanakapura Road":{"c":2,"d":3,"l":2,"ns":5},"Kolar":{"c":0,"d":0,"l":0,"ns":1},"Koppal":{"c":0,"d":0,"l":1,"ns":1},"Koramangala":{"c":2,"d":1,"l":2,"ns":5},"Malleswaram":{"c":3,"d":4,"l":1,"ns":11},"Marathahalli":{"c":0,"d":6,"l":2,"ns":7},"Mysuru":{"c":0,"d":1,"l":1,"ns":2},"Ramanagara":{"c":0,"d":2,"l":0,"ns":0},"Shivamogga":{"c":1,"d":1,"l":1,"ns":3},"Tumakuru":{"c":0,"d":1,"l":0,"ns":1},"Udupi":{"c":0,"d":0,"l":0,"ns":1},"Vijayanagar":{"c":4,"d":8,"l":1,"ns":5},"Whitefield":{"c":1,"d":4,"l":0,"ns":0},"KA - not identified":{"c":1,"d":0,"l":0,"ns":0},"KA - Others":{"c":5,"d":0,"l":2,"ns":0},"No Ishangam record":{"c":2,"d":3,"l":1,"ns":4},"Outside Karnataka":{"c":1,"d":2,"l":5,"ns":13},"Staff / Coordinators":{"c":0,"d":1,"l":0,"ns":0}};
-const SEGCOL = {c:'#fbbf24', d:'#4ade80', l:'#38bdf8', ns:'#94a3b8'};
+const PC = {c:'#fbbf24', d:'#4ade80', l:'#38bdf8', ns:'#94a3b8'};
+const $ = id => document.getElementById(id);
+let MODE='login', PROFILE=null, VOLS=[], ieChart=null, prefChart=null, sortK='name', asc=true;
 
-const centers = Object.keys(DATA);
-let T=0,Y=0,N=0,NF=0, kaVol=0, outVol=0;
-centers.forEach(c=>{const d=DATA[c];T+=d.total;Y+=d.y;N+=d.n;NF+=d.nf;
-  if(c==="Outside Karnataka") outVol+=d.total; else kaVol+=d.total;});
-const PENDING=N+NF;
-const iePct=Math.round(Y/T*100);
-const trackedCenters = centers.filter(c=>!EDGE.has(c)).length;
+function show(view){ ['boot','authView','pendingView','appView'].forEach(v=>$(v).classList.add('hide')); $(view).classList.remove('hide'); }
 
-document.getElementById('sub').textContent =
-  `Live snapshot as of ${SNAPSHOT} · ${T} unique volunteers across ${centers.length} centers · duplicate submissions removed · center-wise metrics only (no personal data)`;
-
-const kpis=[
-  ["Unique Volunteers", T, "duplicate submissions removed"],
-  ["IE Completed", Y, `${iePct}% of volunteers`],
-  ["IE Pending", PENDING, `${N} not done · ${NF} no Ishangam record`],
-  ["Centers Engaged", trackedCenters, "tracked KA centers"],
-  ["Within Karnataka", kaVol, `${Math.round(kaVol/T*100)}% · ${outVol} outside`],
-];
-document.getElementById('kpis').innerHTML = kpis.map(k=>
-  `<div class="kpi"><div class="v">${k[1]}</div><div class="l">${k[0]}</div>
-   <div style="color:var(--muted);font-size:11px;margin-top:4px">${k[2]}</div></div>`).join('');
-
-// ---- bar: volunteers by center (sorted desc) ----
-const sorted=[...centers].sort((a,b)=>DATA[b].total-DATA[a].total);
-new Chart(document.getElementById('bar'),{
-  type:'bar',
-  data:{labels:sorted,datasets:[{
-    label:'Volunteers',
-    data:sorted.map(c=>DATA[c].total),
-    backgroundColor:sorted.map(c=>EDGE.has(c)?'#facc15':'#22c55e'),
-    borderRadius:5, barThickness:14
-  }]},
-  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},
-      tooltip:{callbacks:{afterLabel:(ctx)=>{const d=DATA[ctx.label];return `IE done: ${d.y} · Pending: ${d.n+d.nf}`;}}}},
-    scales:{x:{grid:{color:'rgba(255,255,255,.06)'},ticks:{color:'#a7d7be'}},
-            y:{grid:{display:false},ticks:{color:'#eafff3',font:{size:11.5}}}}}
-});
-
-// ---- donut: IE status ----
-new Chart(document.getElementById('donut'),{
-  type:'doughnut',
-  data:{labels:['Completed','Not completed','No record in Ishangam'],
-    datasets:[{data:[Y,N,NF],backgroundColor:['#22c55e','#fde68a','#6b7280'],borderColor:'#0b3b2e',borderWidth:3}]},
-  options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}
-});
-document.getElementById('dlegend').innerHTML=
-  `<span><i class="dot" style="background:#22c55e"></i>Completed ${Y}</span>
-   <span><i class="dot" style="background:#fde68a"></i>Not completed ${N}</span>
-   <span><i class="dot" style="background:#6b7280"></i>No record in Ishangam ${NF}</span>`;
-
-// ---- geo donut ----
-new Chart(document.getElementById('geo'),{
-  type:'doughnut',
-  data:{labels:['Within Karnataka','Outside Karnataka'],
-    datasets:[{data:[kaVol,outVol],backgroundColor:['#16a34a','#86efac'],borderColor:'#0b3b2e',borderWidth:3}]},
-  options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
-    plugins:{legend:{position:'bottom',labels:{color:'#a7d7be',boxWidth:12,font:{size:12}}}}}
-});
-
-// ---- volunteering preference donut + overall totals ----
-let SC=0,SD=0,SL=0,SNS=0;
-centers.forEach(c=>{const s=SEG[c];SC+=s.c;SD+=s.d;SL+=s.l;SNS+=s.ns;});
-new Chart(document.getElementById('segdonut'),{
-  type:'doughnut',
-  data:{labels:['Calling','Day Visit','Long-term (SSB)','Not specified'],
-    datasets:[{data:[SC,SD,SL,SNS],backgroundColor:[SEGCOL.c,SEGCOL.d,SEGCOL.l,SEGCOL.ns],borderColor:'#0b3b2e',borderWidth:3}]},
-  options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}
-});
-const segCards=[
-  ["Calling Support", SC, "remote", SEGCOL.c],
-  ["Day Visit", SD, "visit schools, return same day", SEGCOL.d],
-  ["Long-term at SSB", SL, "multi-day stay at Sannidhi", SEGCOL.l],
-  ["Not specified", SNS, "question left blank in form", SEGCOL.ns],
-];
-document.getElementById('segkpis').innerHTML=segCards.map(k=>
-  `<div class="kpi"><div class="v" style="color:${k[3]}">${k[1]}</div><div class="l">${k[0]}</div>
-   <div style="color:var(--muted);font-size:11px;margin-top:4px">${k[2]}</div></div>`).join('');
-
-// ---- table ----
-const maxT=Math.max(...centers.map(c=>DATA[c].total));
-function rowsData(){return centers.map(c=>{const d=DATA[c],s=SEG[c];
-  return {center:c,total:d.total,y:d.y,pct:Math.round(d.y/d.total*100),n:d.n,nf:d.nf,pending:d.n+d.nf,c:s.c,d:s.d,l:s.l,ns:s.ns,edge:EDGE.has(c)};});}
-let sortK='total',asc=false;
-function render(){
-  const rows=rowsData().sort((a,b)=>{const av=a[sortK],bv=b[sortK];
-    if(typeof av==='string')return asc?av.localeCompare(bv):bv.localeCompare(av);
-    return asc?av-bv:bv-av;});
-  document.querySelector('#tbl tbody').innerHTML=rows.map(r=>{
-    const col=r.pct>=80?'#22c55e':r.pct>=50?'#fde68a':'#fca5a5';
-    return `<tr class="${r.edge?'edge':''}">
-      <td>${r.center}</td>
-      <td>${r.total}<div class="bar" style="margin-top:5px"><i style="width:${r.total/maxT*100}%"></i></div></td>
-      <td>${r.y}</td>
-      <td><span class="pill" style="background:${col}22;color:${col}">${r.pct}%</span></td>
-      <td>${r.n||''}</td>
-      <td>${r.nf||''}</td>
-      <td>${r.pending||''}</td>
-      <td>${r.c?`<span style="color:${SEGCOL.c};font-weight:700">${r.c}</span>`:''}</td>
-      <td>${r.d?`<span style="color:${SEGCOL.d};font-weight:700">${r.d}</span>`:''}</td>
-      <td>${r.l?`<span style="color:${SEGCOL.l};font-weight:700">${r.l}</span>`:''}</td>
-      <td>${r.ns||''}</td></tr>`;}).join('');
+// -------- auth UI --------
+function showAuth(mode){
+  MODE=mode;
+  $('tabLogin').classList.toggle('active', mode==='login');
+  $('tabSignup').classList.toggle('active', mode==='signup');
+  $('nameField').classList.toggle('hide', mode!=='signup');
+  $('authBtn').textContent = mode==='login' ? 'Log in' : 'Create account';
+  $('password').setAttribute('autocomplete', mode==='login'?'current-password':'new-password');
+  $('authMsg').textContent=''; $('authMsg').className='msg';
+  show('authView');
 }
-document.querySelectorAll('#tbl thead th').forEach(th=>th.onclick=()=>{
-  const k=th.dataset.k; if(sortK===k)asc=!asc; else{sortK=k;asc=false;} render();});
-render();
+function setMsg(el,text,ok){ const e=$(el); e.textContent=text; e.className='msg '+(ok?'ok':'err'); }
 
-document.getElementById('foot').textContent=
-  `Unique volunteers only — duplicate submissions de-duplicated by phone number. IE status verified against Ishangam (Santosha); "No record in Ishangam" = that number matched no Ishangam contact (may be an alternate number). Pending = Not done + No record in Ishangam. Edge buckets (yellow) = Outside Karnataka, unmapped, and staff. Volunteering preference is from the form's "available duration for volunteering" question — Calling (remote), Day Visit (return same day), or Long-term stay at Sadhguru Sannidhi Chikkaballapura; "Not specified" = left blank (mostly early sign-ups from before that question was added to the form). Source: #HasiruShaale center-wise sheet.`;
+async function doAuth(){
+  const email=$('email').value.trim().toLowerCase(), password=$('password').value;
+  if(!email||!password){ setMsg('authMsg','Enter your email and password.',false); return; }
+  $('authBtn').disabled=true;
+  try{
+    if(MODE==='signup'){
+      const fullName=$('fullName').value.trim();
+      const {data,error}=await sb.auth.signUp({email,password,options:{data:{full_name:fullName}}});
+      if(error) throw error;
+      if(data.session){ await route(); }
+      else { setMsg('authMsg','Account created. Please check your email to confirm, then wait for an administrator to approve your access.',true); }
+    } else {
+      const {error}=await sb.auth.signInWithPassword({email,password});
+      if(error) throw error;
+      await route();
+    }
+  }catch(e){ setMsg('authMsg', e.message||'Something went wrong.', false); }
+  $('authBtn').disabled=false;
+}
+
+async function signOut(){ await sb.auth.signOut(); PROFILE=null; showAuth('login'); }
+
+// -------- routing --------
+async function route(){
+  const {data:{session}} = await sb.auth.getSession();
+  if(!session){ showAuth('login'); return; }
+  const {data:prof,error} = await sb.from('hs_profiles').select('*').eq('id',session.user.id).maybeSingle();
+  if(error){ showAuth('login'); setMsg('authMsg',error.message,false); return; }
+  PROFILE = prof || {email:session.user.email, approved:false, role:'user'};
+  if(PROFILE.approved){ await loadApp(); }
+  else {
+    $('pendingMsg').innerHTML = 'Your account (<b>'+ (PROFILE.email||session.user.email) +'</b>) is registered but not yet approved. '+
+      'An administrator will review it shortly. You’ll see the directory here once approved.';
+    show('pendingView');
+  }
+}
+
+// -------- app --------
+async function loadApp(){
+  show('appView');
+  $('whoName').innerHTML = (PROFILE.full_name? PROFILE.full_name+'<br>':'') + (PROFILE.email||'') + (PROFILE.role==='admin'?' · <b style="color:var(--edge)">admin</b>':'');
+  const {data,error} = await sb.from('hs_volunteers').select('*').order('center').order('name');
+  if(error){ $('foot').textContent='Could not load directory: '+error.message; return; }
+  VOLS = data||[];
+  buildCenterFilter();
+  renderMetrics();
+  renderDir();
+  if(PROFILE.role==='admin'){ $('adminPanel').classList.remove('hide'); loadPending(); }
+  $('appSub').textContent = VOLS.length + ' volunteers across ' + new Set(VOLS.map(v=>v.center)).size + ' centres · live from database';
+  $('foot').innerHTML = 'Access is restricted to approved users. Data is served only after authentication and approval (row-level security). '+
+    'IE status verified against Ishangam. Volunteering preference from the sign-up form; “Not specified” = left blank.';
+}
+
+function renderMetrics(){
+  const T=VOLS.length;
+  const y=VOLS.filter(v=>v.ie_status==='Yes').length;
+  const n=VOLS.filter(v=>v.ie_status==='No').length;
+  const nf=T-y-n;
+  const c=VOLS.filter(v=>v.preference==='Calling').length;
+  const d=VOLS.filter(v=>v.preference==='Day Visit').length;
+  const l=VOLS.filter(v=>v.preference==='Long-term').length;
+  const ns=T-c-d-l;
+  const ka=VOLS.filter(v=>v.center!=='Outside Karnataka').length;
+  const tracked=new Set(VOLS.filter(v=>!EDGE.has(v.center)).map(v=>v.center)).size;
+  const kpis=[
+    ['Volunteers',T,'unique, de-duplicated'],
+    ['IE Completed',y, T?Math.round(y/T*100)+'% of volunteers':''],
+    ['IE Pending',n+nf, n+' not done · '+nf+' no record'],
+    ['Centres',tracked,'tracked KA centres'],
+    ['Within Karnataka',ka, T?Math.round(ka/T*100)+'% · '+(T-ka)+' outside':'']
+  ];
+  $('kpis').innerHTML = kpis.map(k=>`<div class="kpi"><div class="v">${k[1]}</div><div class="l">${k[0]}</div><div class="s">${k[2]}</div></div>`).join('');
+
+  ieChart && ieChart.destroy();
+  ieChart = new Chart($('ieDonut'),{type:'doughnut',
+    data:{labels:['Completed','Not completed','No Ishangam record'],datasets:[{data:[y,n,nf],backgroundColor:['#22c55e','#fde68a','#6b7280'],borderColor:'#0b3b2e',borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
+  $('ieLegend').innerHTML = `<span><i class="dot" style="background:#22c55e"></i>Completed ${y}</span>
+    <span><i class="dot" style="background:#fde68a"></i>Not completed ${n}</span>
+    <span><i class="dot" style="background:#6b7280"></i>No record ${nf}</span>`;
+
+  prefChart && prefChart.destroy();
+  prefChart = new Chart($('prefDonut'),{type:'doughnut',
+    data:{labels:['Calling','Day Visit','Long-term (SSB)','Not specified'],datasets:[{data:[c,d,l,ns],backgroundColor:[PC.c,PC.d,PC.l,PC.ns],borderColor:'#0b3b2e',borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
+  $('prefLegend').innerHTML = `<span><i class="dot" style="background:${PC.c}"></i>Calling ${c}</span>
+    <span><i class="dot" style="background:${PC.d}"></i>Day Visit ${d}</span>
+    <span><i class="dot" style="background:${PC.l}"></i>Long-term ${l}</span>
+    <span><i class="dot" style="background:${PC.ns}"></i>Not specified ${ns}</span>`;
+}
+
+function buildCenterFilter(){
+  const centers=[...new Set(VOLS.map(v=>v.center))].sort();
+  $('fCenter').innerHTML = '<option value="">All centres</option>'+centers.map(c=>`<option>${c}</option>`).join('');
+}
+
+function prefPill(p){
+  if(p==='Calling') return `<span class="pill" style="background:${PC.c}22;color:${PC.c}">Calling</span>`;
+  if(p==='Day Visit') return `<span class="pill" style="background:${PC.d}22;color:${PC.d}">Day Visit</span>`;
+  if(p==='Long-term') return `<span class="pill" style="background:${PC.l}22;color:${PC.l}">Long-term</span>`;
+  return `<span class="pill" style="background:${PC.ns}22;color:${PC.ns}">—</span>`;
+}
+function iePill(s){
+  const col = s==='Yes'?'#22c55e':s==='No'?'#fde68a':'#9ca3af';
+  const txt = s==='Yes'?'Yes':s==='No'?'No':'No record';
+  return `<span class="pill" style="background:${col}22;color:${col}">${txt}</span>`;
+}
+
+function renderDir(){
+  const q=$('q').value.trim().toLowerCase(), fc=$('fCenter').value, fp=$('fPref').value, fi=$('fIE').value;
+  let rows = VOLS.filter(v=>{
+    if(fc && v.center!==fc) return false;
+    if(fp==='__ns'){ if(v.preference) return false; } else if(fp && v.preference!==fp) return false;
+    if(fi && (v.ie_status||'')!==fi) return false;
+    if(q){ const hay=((v.name||'')+' '+(v.whatsapp||'')+' '+(v.email||'')+' '+(v.pincode||'')+' '+(v.center||'')).toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  });
+  rows.sort((a,b)=>{ const av=(a[sortK]||'').toString().toLowerCase(), bv=(b[sortK]||'').toString().toLowerCase(); return asc? av.localeCompare(bv):bv.localeCompare(av); });
+  $('dirCount').textContent = rows.length;
+  $('dirTbl').querySelector('tbody').innerHTML = rows.map(v=>`<tr>
+    <td>${esc(v.name)}</td><td>${esc(v.center)}</td>
+    <td>${esc(v.whatsapp)}</td><td>${esc(v.email)}</td>
+    <td>${iePill(v.ie_status)}</td><td>${esc(v.pincode)}</td>
+    <td>${prefPill(v.preference)}</td><td style="white-space:normal;color:var(--muted)">${esc(v.languages)}</td>
+  </tr>`).join('') || '<tr><td colspan="8" style="color:var(--muted);padding:18px">No matches.</td></tr>';
+}
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+
+document.querySelectorAll('#dirTbl thead th').forEach(th=>th.onclick=()=>{ const k=th.dataset.k; if(sortK===k)asc=!asc; else{sortK=k;asc=true;} renderDir(); });
+
+// -------- admin --------
+async function loadPending(){
+  const {data,error} = await sb.from('hs_profiles').select('*').eq('approved',false).order('created_at');
+  if(error){ $('pendList').innerHTML='<div class="sub">'+error.message+'</div>'; return; }
+  const list=data||[];
+  $('pendCount').textContent = list.length? '('+list.length+')':'';
+  if(!list.length){ $('pendList').innerHTML='<div class="sub" style="padding:6px 0">No pending sign-ups. 🎉</div>'; return; }
+  $('pendList').innerHTML = list.map(p=>`<div class="pending" data-id="${p.id}">
+    <div><div class="e">${esc(p.full_name||'(no name)')}</div><div class="sub">${esc(p.email||'')}</div></div>
+    <div class="g">
+      <button class="btn sm" onclick="approve('${p.id}',true)">Approve</button>
+      <button class="btn ghost sm" onclick="approve('${p.id}',false)">Dismiss</button>
+    </div></div>`).join('');
+}
+async function approve(id, ok){
+  if(!ok){ document.querySelector('.pending[data-id="'+id+'"]').style.opacity=.4; return; }
+  const {error} = await sb.from('hs_profiles').update({approved:true}).eq('id',id);
+  if(error){ alert('Could not approve: '+error.message); return; }
+  loadPending();
+}
+
+// -------- boot --------
+sb.auth.onAuthStateChange((_e,_s)=>{ /* handled by explicit route() calls */ });
+(async ()=>{ try{ await route(); }catch(e){ showAuth('login'); } })();
 </script>
 </body>
 </html>
