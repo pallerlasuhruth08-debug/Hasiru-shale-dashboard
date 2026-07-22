@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="robots" content="noindex"/>
+<title>#HasiruShaale — Green School Volunteer Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg1:#052e16; --bg2:#064e3b; --card:#0b3b2e; --card2:#0e4735;
+    --line:#1f6b4f; --ink:#eafff3; --muted:#a7d7be;
+    --g1:#22c55e; --g2:#4ade80; --g3:#86efac; --g4:#16a34a; --g5:#15803d;
+    --warn:#fde68a; --bad:#fca5a5; --edge:#facc15;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);background:linear-gradient(160deg,var(--bg1),var(--bg2) 70%);min-height:100vh;padding:28px 20px 60px}
+  .wrap{max-width:1180px;margin:0 auto}
+  .head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+  .leaf{font-size:34px}
+  h1{font-size:26px;margin:0;font-weight:800;letter-spacing:.2px}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0 22px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:14px;margin-bottom:24px}
+  .kpi{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:16px 18px;position:relative;overflow:hidden}
+  .kpi:after{content:"";position:absolute;right:-18px;bottom:-18px;width:70px;height:70px;background:radial-gradient(circle,rgba(74,222,128,.25),transparent 70%);border-radius:50%}
+  .kpi .v{font-size:30px;font-weight:800;line-height:1}
+  .kpi .l{color:var(--muted);font-size:12.5px;margin-top:7px;text-transform:uppercase;letter-spacing:.5px}
+  .grid{display:grid;grid-template-columns:1.55fr 1fr;gap:18px;margin-bottom:18px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .panel{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+  .panel h2{font-size:14px;margin:0 0 14px;font-weight:700;color:#d6ffe7;text-transform:uppercase;letter-spacing:.6px}
+  .barbox{height:760px}
+  .donutbox{height:300px;display:flex;align-items:center;justify-content:center}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:14px;font-size:12.5px;color:var(--muted)}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:middle}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:right;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.07)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;user-select:none}
+  tbody tr:hover{background:rgba(74,222,128,.07)}
+  .pill{display:inline-block;min-width:44px;text-align:center;padding:2px 8px;border-radius:20px;font-weight:700;font-size:12px}
+  .edge td:first-child{color:var(--edge)}
+  .bar{height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--g5),var(--g2))}
+  .foot{color:var(--muted);font-size:12px;margin-top:22px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head"><div class="leaf">🌱</div><div><h1>#HasiruShaale — Green School Volunteer Dashboard</h1></div></div>
+  <div class="sub" id="sub"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Volunteers by Center</h2>
+      <div class="barbox"><canvas id="bar"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Inner Engineering Status</h2>
+      <div class="donutbox"><canvas id="donut"></canvas></div>
+      <div class="legend" id="dlegend"></div>
+      <div style="margin-top:22px">
+        <h2>Karnataka vs Outside</h2>
+        <div class="donutbox" style="height:230px"><canvas id="geo"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Center-wise Breakdown</h2>
+    <table id="tbl">
+      <thead><tr>
+        <th data-k="center">Center</th>
+        <th data-k="total">Volunteers</th>
+        <th data-k="y">IE Done</th>
+        <th data-k="pct">IE %</th>
+        <th data-k="pending">Pending</th>
+        <th data-k="unique">Unique</th>
+        <th data-k="dup">Dups</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+const DATA = {"Banaswadi":{"total":12,"y":11,"n":0,"nf":1,"dup":1},"Bangalore Rural":{"total":11,"y":9,"n":1,"nf":1,"dup":1},"Bannerghatta Road":{"total":23,"y":22,"n":0,"nf":1,"dup":11},"Budigere Cross":{"total":17,"y":16,"n":1,"nf":0,"dup":1},"Chamarajanagar":{"total":1,"y":0,"n":0,"nf":1,"dup":0},"Chikkaballapura":{"total":30,"y":24,"n":5,"nf":1,"dup":5},"Chitradurga":{"total":1,"y":1,"n":0,"nf":0,"dup":0},"Davangere":{"total":2,"y":2,"n":0,"nf":0,"dup":1},"Electronic City":{"total":12,"y":11,"n":1,"nf":0,"dup":1},"Gadag":{"total":1,"y":1,"n":0,"nf":0,"dup":0},"Girinagar":{"total":11,"y":10,"n":0,"nf":1,"dup":2},"Hebbal":{"total":43,"y":36,"n":6,"nf":1,"dup":9},"Hubballi":{"total":4,"y":3,"n":0,"nf":1,"dup":0},"Indiranagar":{"total":4,"y":3,"n":1,"nf":0,"dup":0},"Jayanagar":{"total":4,"y":4,"n":0,"nf":0,"dup":0},"Kalaburagi":{"total":1,"y":0,"n":1,"nf":0,"dup":0},"Kanakapura Road":{"total":14,"y":14,"n":0,"nf":0,"dup":2},"Kolar":{"total":1,"y":1,"n":0,"nf":0,"dup":0},"Koppal":{"total":2,"y":1,"n":1,"nf":0,"dup":0},"Koramangala":{"total":11,"y":11,"n":0,"nf":0,"dup":1},"Malleswaram":{"total":23,"y":21,"n":0,"nf":2,"dup":6},"Marathahalli":{"total":14,"y":14,"n":0,"nf":0,"dup":0},"Mysuru":{"total":4,"y":3,"n":1,"nf":0,"dup":1},"Ramanagara":{"total":2,"y":2,"n":0,"nf":0,"dup":1},"Shivamogga":{"total":8,"y":8,"n":0,"nf":0,"dup":2},"Tumakuru":{"total":2,"y":2,"n":0,"nf":0,"dup":1},"Udupi":{"total":1,"y":1,"n":0,"nf":0,"dup":0},"Vijayanagar":{"total":22,"y":19,"n":3,"nf":0,"dup":5},"Whitefield":{"total":6,"y":6,"n":0,"nf":0,"dup":1},"KA - not identified":{"total":1,"y":0,"n":0,"nf":1,"dup":0},"KA - Others":{"total":7,"y":6,"n":1,"nf":0,"dup":0},"No Ishangam record":{"total":10,"y":0,"n":0,"nf":10,"dup":1},"Outside Karnataka":{"total":19,"y":16,"n":2,"nf":1,"dup":0},"Staff / Coordinators":{"total":1,"y":1,"n":0,"nf":0,"dup":0}};
+const SNAPSHOT = "22 July 2026";
+const EDGE = new Set(["KA - not identified","KA - Others","No Ishangam record","Outside Karnataka","Staff / Coordinators"]);
+
+const centers = Object.keys(DATA);
+let T=0,Y=0,N=0,NF=0,DUP=0, kaVol=0, outVol=0;
+centers.forEach(c=>{const d=DATA[c];T+=d.total;Y+=d.y;N+=d.n;NF+=d.nf;DUP+=d.dup;
+  if(c==="Outside Karnataka") outVol+=d.total; else kaVol+=d.total;});
+const UNIQUE=T-DUP;
+const iePct=Math.round(Y/T*100);
+const trackedCenters = centers.filter(c=>!EDGE.has(c)).length;
+
+document.getElementById('sub').textContent =
+  `Live snapshot as of ${SNAPSHOT} · ${T} volunteer submissions across ${centers.length} centers · center-wise metrics only (no personal data)`;
+
+const kpis=[
+  ["Total Volunteers", T, "submissions across all centers"],
+  ["Unique Volunteers", UNIQUE, `${DUP} duplicate submissions flagged`],
+  ["IE Completed", Y, `${iePct}% of submissions`],
+  ["Centers Engaged", trackedCenters, "tracked KA centers"],
+  ["Within Karnataka", kaVol, `${Math.round(kaVol/T*100)}% of volunteers`],
+];
+document.getElementById('kpis').innerHTML = kpis.map(k=>
+  `<div class="kpi"><div class="v">${k[1]}</div><div class="l">${k[0]}</div>
+   <div style="color:var(--muted);font-size:11px;margin-top:4px">${k[2]}</div></div>`).join('');
+
+// ---- bar: volunteers by center (sorted desc) ----
+const sorted=[...centers].sort((a,b)=>DATA[b].total-DATA[a].total);
+new Chart(document.getElementById('bar'),{
+  type:'bar',
+  data:{labels:sorted,datasets:[{
+    label:'Volunteers',
+    data:sorted.map(c=>DATA[c].total),
+    backgroundColor:sorted.map(c=>EDGE.has(c)?'#facc15':'#22c55e'),
+    borderRadius:5, barThickness:14
+  }]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      tooltip:{callbacks:{afterLabel:(ctx)=>{const d=DATA[ctx.label];return `IE done: ${d.y} · Unique: ${d.total-d.dup}`;}}}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.06)'},ticks:{color:'#a7d7be'}},
+            y:{grid:{display:false},ticks:{color:'#eafff3',font:{size:11.5}}}}}
+});
+
+// ---- donut: IE status ----
+new Chart(document.getElementById('donut'),{
+  type:'doughnut',
+  data:{labels:['Completed','Not completed','Not found in Ishangam'],
+    datasets:[{data:[Y,N,NF],backgroundColor:['#22c55e','#fde68a','#6b7280'],borderColor:'#0b3b2e',borderWidth:3}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}
+});
+document.getElementById('dlegend').innerHTML=
+  `<span><i class="dot" style="background:#22c55e"></i>Completed ${Y}</span>
+   <span><i class="dot" style="background:#fde68a"></i>Not completed ${N}</span>
+   <span><i class="dot" style="background:#6b7280"></i>Not found ${NF}</span>`;
+
+// ---- geo donut ----
+new Chart(document.getElementById('geo'),{
+  type:'doughnut',
+  data:{labels:['Within Karnataka','Outside Karnataka'],
+    datasets:[{data:[kaVol,outVol],backgroundColor:['#16a34a','#86efac'],borderColor:'#0b3b2e',borderWidth:3}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+    plugins:{legend:{position:'bottom',labels:{color:'#a7d7be',boxWidth:12,font:{size:12}}}}}
+});
+
+// ---- table ----
+const maxT=Math.max(...centers.map(c=>DATA[c].total));
+function rowsData(){return centers.map(c=>{const d=DATA[c];const done=d.total-d.nf?Math.round(d.y/d.total*100):0;
+  return {center:c,total:d.total,y:d.y,pct:Math.round(d.y/d.total*100),pending:d.n+d.nf,unique:d.total-d.dup,dup:d.dup,edge:EDGE.has(c)};});}
+let sortK='total',asc=false;
+function render(){
+  const rows=rowsData().sort((a,b)=>{const av=a[sortK],bv=b[sortK];
+    if(typeof av==='string')return asc?av.localeCompare(bv):bv.localeCompare(av);
+    return asc?av-bv:bv-av;});
+  document.querySelector('#tbl tbody').innerHTML=rows.map(r=>{
+    const col=r.pct>=80?'#22c55e':r.pct>=50?'#fde68a':'#fca5a5';
+    return `<tr class="${r.edge?'edge':''}">
+      <td>${r.center}</td>
+      <td>${r.total}<div class="bar" style="margin-top:5px"><i style="width:${r.total/maxT*100}%"></i></div></td>
+      <td>${r.y}</td>
+      <td><span class="pill" style="background:${col}22;color:${col}">${r.pct}%</span></td>
+      <td>${r.pending||''}</td>
+      <td>${r.unique}</td>
+      <td>${r.dup||''}</td></tr>`;}).join('');
+}
+document.querySelectorAll('#tbl thead th').forEach(th=>th.onclick=()=>{
+  const k=th.dataset.k; if(sortK===k)asc=!asc; else{sortK=k;asc=false;} render();});
+render();
+
+document.getElementById('foot').textContent=
+  `IE status verified against Ishangam (Santosha). "Not found" = no Ishangam record for that number. Edge buckets (yellow) = Outside Karnataka, unmapped, and staff. Source: #HasiruShaale center-wise sheet.`;
+</script>
+</body>
+</html>
