@@ -9,11 +9,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
-    --bg1:#052e16; --bg2:#064e3b; --card:#0b3b2e; --card2:#0e4735;
-    --line:#1f6b4f; --ink:#eafff3; --muted:#a7d7be;
-    --g1:#22c55e; --g2:#4ade80; --g4:#16a34a; --g5:#15803d;
-    --edge:#facc15; --bad:#fca5a5;
-    --pc:#fbbf24; --pd:#4ade80; --pl:#38bdf8; --pns:#94a3b8;
+    --bg1:#f7faf4; --bg2:#eef3e8; --card:#ffffff; --card2:#ffffff; --field:#ffffff;
+    --line:#dbe5d6; --ink:#16241a; --muted:#5c6b60;
+    --g1:#22c55e; --g2:#15803d; --g4:#16a34a; --g5:#15803d; --gbright:#4ade80;
+    --edge:#b45309; --bad:#b91c1c;
+    --pc:#b45309; --pd:#15803d; --pl:#0369a1; --pns:#475569;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -23,24 +23,24 @@
   .leaf{font-size:32px}
   h1{font-size:23px;margin:0;font-weight:800}
   .sub{color:var(--muted);font-size:13px;margin:3px 0 0}
-  .btn{background:linear-gradient(150deg,var(--g4),var(--g2));color:#04240f;border:none;border-radius:10px;
+  .btn{background:linear-gradient(150deg,var(--g4),var(--gbright));color:#04240f;border:none;border-radius:10px;
     padding:11px 16px;font-weight:800;font-size:14px;cursor:pointer}
   .btn:disabled{opacity:.5;cursor:default}
   .btn.sm{padding:6px 12px;font-size:12.5px;border-radius:8px}
   .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);font-weight:600}
   .btn.red{background:linear-gradient(150deg,#b91c1c,#ef4444);color:#fff}
   input,select,textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);
-    background:#04281c;color:var(--ink);font-size:14px;outline:none;font-family:inherit}
+    background:var(--field);color:var(--ink);font-size:14px;outline:none;font-family:inherit}
   textarea{resize:vertical}
-  input::placeholder,textarea::placeholder{color:#6fae90}
-  code{background:#04281c;border-radius:4px;padding:1px 5px;font-size:12px;color:var(--g2)}
-  .panel{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:18px 20px}
-  .panel h2{font-size:13.5px;margin:0 0 14px;font-weight:700;color:#d6ffe7;text-transform:uppercase;letter-spacing:.6px}
+  input::placeholder,textarea::placeholder{color:#8a9a8f}
+  code{background:#eef3e8;border-radius:4px;padding:1px 5px;font-size:12px;color:var(--g2)}
+  .panel{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 1px 3px rgba(20,40,25,.06)}
+  .panel h2{font-size:13.5px;margin:0 0 14px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.6px}
   .msg{font-size:13px;margin-top:12px;min-height:18px}
   .msg.err{color:var(--bad)} .msg.ok{color:var(--g2)}
   /* auth */
   .authbox{max-width:400px;margin:8vh auto 0}
-  .authcard{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:18px;padding:26px 24px}
+  .authcard{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:18px;padding:26px 24px;box-shadow:0 1px 3px rgba(20,40,25,.06)}
   .tabs{display:flex;gap:8px;margin:16px 0 18px}
   .tabs button{flex:1;padding:9px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--muted);font-weight:700;cursor:pointer}
   .tabs button.active{background:var(--g5);color:#eafff3;border-color:var(--g5)}
@@ -50,7 +50,7 @@
   .topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
   .topbar .who{margin-left:auto;text-align:right;font-size:12px;color:var(--muted)}
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
-  .kpi{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .kpi{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:0 1px 3px rgba(20,40,25,.06)}
   .kpi .v{font-size:26px;font-weight:800;line-height:1}
   .kpi .l{color:var(--muted);font-size:11.5px;margin-top:6px;text-transform:uppercase;letter-spacing:.5px}
   .kpi .s{color:var(--muted);font-size:11px;margin-top:3px}
@@ -60,14 +60,14 @@
   .legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:12px;font-size:12px;color:var(--muted)}
   .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
   table{width:100%;border-collapse:collapse;font-size:12.5px}
-  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap}
-  thead th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;position:sticky;top:0;background:#0b3b2e}
-  tbody tr:hover{background:rgba(74,222,128,.06)}
+  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid rgba(20,40,25,.08);white-space:nowrap}
+  thead th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;position:sticky;top:0;background:#f7faf4}
+  tbody tr:hover{background:rgba(21,128,61,.06)}
   .tblscroll{max-height:560px;overflow:auto;border-radius:10px}
   .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-weight:700;font-size:11px}
   .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
   .filters input{flex:2;min-width:180px} .filters select{flex:1;min-width:130px}
-  .pending{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+  .pending{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid rgba(20,40,25,.08)}
   .pending .e{font-weight:700} .pending .g{margin-left:auto;display:flex;gap:8px}
   .hide{display:none!important}
   .foot{color:var(--muted);font-size:11.5px;margin-top:22px;text-align:center;line-height:1.6}
@@ -75,19 +75,19 @@
   /* contact links + call status */
   .contact{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
   .iconlink{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;
-    background:rgba(74,222,128,.14);color:var(--g2);text-decoration:none;font-size:12px;flex:none}
-  .iconlink.wa{background:rgba(37,211,102,.16);color:#25d366}
-  .logbtn{background:rgba(56,189,248,.15);color:#38bdf8;border:1px solid rgba(56,189,248,.35);border-radius:8px;
+    background:rgba(21,128,61,.12);color:var(--g2);text-decoration:none;font-size:12px;flex:none}
+  .iconlink.wa{background:rgba(37,211,102,.16);color:#1a9c53}
+  .logbtn{background:rgba(3,105,161,.1);color:#0369a1;border:1px solid rgba(3,105,161,.3);border-radius:8px;
     padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:6px}
   .barbox{position:relative}
   /* modal */
-  .modalbg{position:fixed;inset:0;background:rgba(2,20,12,.75);display:flex;align-items:center;justify-content:center;
+  .modalbg{position:fixed;inset:0;background:rgba(15,30,20,.55);display:flex;align-items:center;justify-content:center;
     z-index:50;padding:16px}
   .modalcard{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;
-    padding:22px;max-width:480px;width:100%;max-height:88vh;overflow:auto}
+    padding:22px;max-width:480px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 8px 24px rgba(20,40,25,.14)}
   .modalcard h3{margin:0 0 4px;font-size:16px}
-  .calllog{border-top:1px solid rgba(255,255,255,.08);margin-top:14px;padding-top:12px}
-  .callrow{padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.08);font-size:12.5px}
+  .calllog{border-top:1px solid rgba(20,40,25,.1);margin-top:14px;padding-top:12px}
+  .callrow{padding:8px 0;border-bottom:1px dashed rgba(20,40,25,.12);font-size:12.5px}
   .callrow .o{font-weight:700}
   .callrow .m{color:var(--muted);font-size:11px}
   /* mobile */
@@ -288,10 +288,10 @@ const SB_URL = 'https://zbqetpvgipgagmmyupcn.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpicWV0cHZnaXBnYWdtbXl1cGNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MTM3MDksImV4cCI6MjEwMDI4OTcwOX0.O1vc899acxertmdatCgyO0pLFvoQpc7zUSUHChGdQV0';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 const EDGE = new Set(["KA - not identified","KA - Others","No Ishangam record","Outside Karnataka","Staff / Coordinators"]);
-const PC = {c:'#fbbf24', d:'#4ade80', l:'#38bdf8', ns:'#94a3b8'};
+const PC = {c:'#b45309', d:'#15803d', l:'#0369a1', ns:'#475569'};
 const $ = id => document.getElementById(id);
 let MODE='login', PROFILE=null, VOLS=[], CALLS=[], ieChart=null, prefChart=null, centerChart=null, sortK='name', asc=true, CM_VID=null;
-const OUTCOME_COLOR = {Connected:'#38bdf8','No Answer':'#fde68a','Not Interested':'#fca5a5',Confirmed:'#22c55e','Callback Later':'#fbbf24'};
+const OUTCOME_COLOR = {Connected:'#0369a1','No Answer':'#a16207','Not Interested':'#b91c1c',Confirmed:'#15803d','Callback Later':'#7e22ce'};
 const PAGE_SIZE = 50;
 let dirPage = 1, MSG_QUEUE = [], MSG_IDX = 0;
 
@@ -390,7 +390,7 @@ function renderMetrics(){
 
   ieChart && ieChart.destroy();
   ieChart = new Chart($('ieDonut'),{type:'doughnut',
-    data:{labels:['Completed','Not completed','No Ishangam record'],datasets:[{data:[y,n,nf],backgroundColor:['#22c55e','#fde68a','#6b7280'],borderColor:'#0b3b2e',borderWidth:3}]},
+    data:{labels:['Completed','Not completed','No Ishangam record'],datasets:[{data:[y,n,nf],backgroundColor:['#22c55e','#fde68a','#6b7280'],borderColor:'#ffffff',borderWidth:3}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
   $('ieLegend').innerHTML = `<span><i class="dot" style="background:#22c55e"></i>Completed ${y}</span>
     <span><i class="dot" style="background:#fde68a"></i>Not completed ${n}</span>
@@ -398,7 +398,7 @@ function renderMetrics(){
 
   prefChart && prefChart.destroy();
   prefChart = new Chart($('prefDonut'),{type:'doughnut',
-    data:{labels:['Calling','Day Visit','Long-term (SSB)','Not specified'],datasets:[{data:[c,d,l,ns],backgroundColor:[PC.c,PC.d,PC.l,PC.ns],borderColor:'#0b3b2e',borderWidth:3}]},
+    data:{labels:['Calling','Day Visit','Long-term (SSB)','Not specified'],datasets:[{data:[c,d,l,ns],backgroundColor:[PC.c,PC.d,PC.l,PC.ns],borderColor:'#ffffff',borderWidth:3}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
   $('prefLegend').innerHTML = `<span><i class="dot" style="background:${PC.c}"></i>Calling ${c}</span>
     <span><i class="dot" style="background:${PC.d}"></i>Day Visit ${d}</span>
@@ -415,12 +415,12 @@ function renderCenterChart(){
   centerChart && centerChart.destroy();
   centerChart = new Chart(canvas,{type:'bar',
     data:{labels:centers,datasets:[{label:'Volunteers',data:centers.map(c=>counts[c]),
-      backgroundColor:'#4ade80',borderRadius:4,maxBarThickness:16}]},
+      backgroundColor:'#16a34a',borderRadius:4,maxBarThickness:16}]},
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.x+' volunteers'}}},
       scales:{
-        x:{beginAtZero:true,ticks:{color:'#a7d7be',precision:0},grid:{color:'rgba(255,255,255,.06)'}},
-        y:{ticks:{color:'#a7d7be',font:{size:11}},grid:{display:false}}
+        x:{beginAtZero:true,ticks:{color:'#5c6b60',precision:0},grid:{color:'rgba(20,40,25,.08)'}},
+        y:{ticks:{color:'#5c6b60',font:{size:11}},grid:{display:false}}
       }}});
 }
 
@@ -436,7 +436,7 @@ function prefPill(p){
   return `<span class="pill" style="background:${PC.ns}22;color:${PC.ns}">—</span>`;
 }
 function iePill(s){
-  const col = s==='Yes'?'#22c55e':s==='No'?'#fde68a':'#9ca3af';
+  const col = s==='Yes'?'#15803d':s==='No'?'#a16207':'#475569';
   const txt = s==='Yes'?'Yes':s==='No'?'No':'No record';
   return `<span class="pill" style="background:${col}22;color:${col}">${txt}</span>`;
 }
@@ -549,7 +549,7 @@ function renderCallHistory(vid){
   const hist=CALLS.filter(c=>c.volunteer_id===vid);
   $('cmHistory').innerHTML = hist.length
     ? '<div class="sub" style="margin-bottom:6px">Call history (' + hist.length + ')</div>' +
-      hist.map(c=>`<div class="callrow"><span class="o" style="color:${OUTCOME_COLOR[c.outcome]||'#eafff3'}">${esc(c.outcome)}</span>`+
+      hist.map(c=>`<div class="callrow"><span class="o" style="color:${OUTCOME_COLOR[c.outcome]||'#16241a'}">${esc(c.outcome)}</span>`+
         ` — ${esc(c.caller_name||c.caller_email||'unknown')}<br>`+
         `<span class="m">${new Date(c.called_at).toLocaleString('en-IN')}</span>`+
         (c.notes? `<div>${esc(c.notes)}</div>` : '')+`</div>`).join('')
