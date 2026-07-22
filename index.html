@@ -215,8 +215,8 @@ async function doAuth(){
       const fullName=$('fullName').value.trim();
       const {data,error}=await sb.auth.signUp({email,password,options:{data:{full_name:fullName}}});
       if(error) throw error;
-      if(data.session){ await route(); }
-      else { setMsg('authMsg','Account created. Please check your email to confirm, then wait for an administrator to approve your access.',true); }
+      if(!data.session){ await sb.auth.signInWithPassword({email,password}); }
+      await route();
     } else {
       const {error}=await sb.auth.signInWithPassword({email,password});
       if(error) throw error;
