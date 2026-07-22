@@ -70,6 +70,40 @@
   .hide{display:none!important}
   .foot{color:var(--muted);font-size:11.5px;margin-top:22px;text-align:center;line-height:1.6}
   .spin{color:var(--muted);text-align:center;padding:40px;font-size:14px}
+  /* contact links + call status */
+  .contact{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+  .iconlink{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;
+    background:rgba(74,222,128,.14);color:var(--g2);text-decoration:none;font-size:12px;flex:none}
+  .iconlink.wa{background:rgba(37,211,102,.16);color:#25d366}
+  .logbtn{background:rgba(56,189,248,.15);color:#38bdf8;border:1px solid rgba(56,189,248,.35);border-radius:8px;
+    padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:6px}
+  .barbox{position:relative}
+  /* modal */
+  .modalbg{position:fixed;inset:0;background:rgba(2,20,12,.75);display:flex;align-items:center;justify-content:center;
+    z-index:50;padding:16px}
+  .modalcard{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;
+    padding:22px;max-width:480px;width:100%;max-height:88vh;overflow:auto}
+  .modalcard h3{margin:0 0 4px;font-size:16px}
+  .calllog{border-top:1px solid rgba(255,255,255,.08);margin-top:14px;padding-top:12px}
+  .callrow{padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.08);font-size:12.5px}
+  .callrow .o{font-weight:700}
+  .callrow .m{color:var(--muted);font-size:11px}
+  /* mobile */
+  @media(max-width:640px){
+    .wrap{padding:14px 10px 50px}
+    h1{font-size:18px}
+    .leaf{font-size:26px}
+    .topbar{gap:10px}
+    .topbar .who{margin-left:0;text-align:left;width:100%}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .kpi{padding:11px 12px}
+    .kpi .v{font-size:20px}
+    table{font-size:11px}
+    th,td{padding:6px 6px}
+    .filters{flex-direction:column}
+    .filters input,.filters select{width:100%}
+    .modalcard{padding:18px 16px}
+  }
 </style>
 </head>
 <body>
@@ -145,6 +179,11 @@
     </div>
 
     <div class="panel" style="margin-bottom:18px">
+      <h2>Volunteers by Centre</h2>
+      <div class="barbox"><canvas id="centerBar"></canvas></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:18px">
       <h2>Participant Directory (<span id="dirCount">0</span>)</h2>
       <div class="filters">
         <input id="q" type="text" placeholder="Search name, phone, email, pincode…" oninput="renderDir()"/>
@@ -170,13 +209,45 @@
             <th data-k="whatsapp">WhatsApp</th><th data-k="email">Email</th>
             <th data-k="ie_status">IE</th><th data-k="pincode">Pincode</th>
             <th data-k="preference">Preference</th><th data-k="languages">Languages</th>
+            <th data-k="_call">Call Status</th>
           </tr></thead>
           <tbody></tbody>
         </table>
       </div>
     </div>
 
+    <div class="panel" style="margin-bottom:18px">
+      <h2>Call Remarks (<span id="callCount">0</span> logged)</h2>
+      <div class="sub" id="callSummary" style="margin-bottom:12px">No calls logged yet.</div>
+      <button class="btn sm" onclick="exportCallsCSV()">⬇ Export all remarks (CSV)</button>
+    </div>
+
     <div class="foot" id="foot"></div>
+  </div>
+</div>
+
+<!-- ===================== CALL LOG MODAL ===================== -->
+<div id="callModal" class="modalbg hide" onclick="if(event.target===this)closeCallModal()">
+  <div class="modalcard">
+    <h3 id="cmName"></h3>
+    <div class="sub" id="cmMeta" style="margin-bottom:10px"></div>
+    <div id="cmContacts" style="margin-bottom:14px"></div>
+    <div class="field"><label>Outcome</label>
+      <select id="cmOutcome">
+        <option>Connected</option>
+        <option>No Answer</option>
+        <option>Not Interested</option>
+        <option>Confirmed</option>
+        <option>Callback Later</option>
+      </select>
+    </div>
+    <div class="field"><label>Notes</label><input id="cmNotes" type="text" placeholder="Optional notes…"/></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn" style="flex:1" onclick="submitCall()">Save call</button>
+      <button class="btn ghost" onclick="closeCallModal()">Close</button>
+    </div>
+    <div class="msg" id="cmMsg"></div>
+    <div class="calllog" id="cmHistory"></div>
   </div>
 </div>
 
@@ -189,7 +260,8 @@ const sb = supabase.createClient(SB_URL, SB_KEY);
 const EDGE = new Set(["KA - not identified","KA - Others","No Ishangam record","Outside Karnataka","Staff / Coordinators"]);
 const PC = {c:'#fbbf24', d:'#4ade80', l:'#38bdf8', ns:'#94a3b8'};
 const $ = id => document.getElementById(id);
-let MODE='login', PROFILE=null, VOLS=[], ieChart=null, prefChart=null, sortK='name', asc=true;
+let MODE='login', PROFILE=null, VOLS=[], CALLS=[], ieChart=null, prefChart=null, centerChart=null, sortK='name', asc=true, CM_VID=null;
+const OUTCOME_COLOR = {Connected:'#38bdf8','No Answer':'#fde68a','Not Interested':'#fca5a5',Confirmed:'#22c55e','Callback Later':'#fbbf24'};
 
 function show(view){ ['boot','authView','pendingView','appView'].forEach(v=>$(v).classList.add('hide')); $(view).classList.remove('hide'); }
 
@@ -250,9 +322,13 @@ async function loadApp(){
   const {data,error} = await sb.from('hs_volunteers').select('*').order('center').order('name');
   if(error){ $('foot').textContent='Could not load directory: '+error.message; return; }
   VOLS = data||[];
+  const {data:calls,error:callErr} = await sb.from('hs_call_logs').select('*').order('called_at',{ascending:false});
+  if(!callErr) CALLS = calls||[];
   buildCenterFilter();
   renderMetrics();
+  renderCenterChart();
   renderDir();
+  renderCallSummary();
   if(PROFILE.role==='admin'){ $('adminPanel').classList.remove('hide'); loadPending(); }
   $('appSub').textContent = VOLS.length + ' volunteers across ' + new Set(VOLS.map(v=>v.center)).size + ' centres · live from database';
   $('foot').innerHTML = 'Access is restricted to approved users. Data is served only after authentication and approval (row-level security). '+
@@ -297,6 +373,24 @@ function renderMetrics(){
     <span><i class="dot" style="background:${PC.ns}"></i>Not specified ${ns}</span>`;
 }
 
+function renderCenterChart(){
+  const counts={};
+  VOLS.forEach(v=>{ counts[v.center]=(counts[v.center]||0)+1; });
+  const centers=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+  const canvas=$('centerBar');
+  canvas.parentElement.style.height = Math.max(260, centers.length*24+40)+'px';
+  centerChart && centerChart.destroy();
+  centerChart = new Chart(canvas,{type:'bar',
+    data:{labels:centers,datasets:[{label:'Volunteers',data:centers.map(c=>counts[c]),
+      backgroundColor:'#4ade80',borderRadius:4,maxBarThickness:16}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.x+' volunteers'}}},
+      scales:{
+        x:{beginAtZero:true,ticks:{color:'#a7d7be',precision:0},grid:{color:'rgba(255,255,255,.06)'}},
+        y:{ticks:{color:'#a7d7be',font:{size:11}},grid:{display:false}}
+      }}});
+}
+
 function buildCenterFilter(){
   const centers=[...new Set(VOLS.map(v=>v.center))].sort();
   $('fCenter').innerHTML = '<option value="">All centres</option>'+centers.map(c=>`<option>${c}</option>`).join('');
@@ -313,6 +407,21 @@ function iePill(s){
   const txt = s==='Yes'?'Yes':s==='No'?'No':'No record';
   return `<span class="pill" style="background:${col}22;color:${col}">${txt}</span>`;
 }
+function digits10(s){ return (s||'').replace(/\D/g,'').slice(-10); }
+function contactLinks(v){
+  const d=digits10(v.whatsapp||v.calling);
+  const label=esc(v.whatsapp||v.calling||'');
+  if(!d) return label||'—';
+  return `<span class="contact"><a class="iconlink" href="tel:+91${d}" title="Call">☎</a>`+
+    `<a class="iconlink wa" href="https://wa.me/91${d}" target="_blank" rel="noopener" title="WhatsApp">💬</a> ${label}</span>`;
+}
+function latestCall(vid){ return CALLS.find(c=>c.volunteer_id===vid); }
+function callStatusPill(vid){
+  const c=latestCall(vid);
+  if(!c) return `<span class="pill" style="background:#6b728022;color:#9ca3af">Not called</span>`;
+  const col=OUTCOME_COLOR[c.outcome]||'#9ca3af';
+  return `<span class="pill" style="background:${col}22;color:${col}">${esc(c.outcome)}</span>`;
+}
 
 function renderDir(){
   const q=$('q').value.trim().toLowerCase(), fc=$('fCenter').value, fp=$('fPref').value, fi=$('fIE').value;
@@ -327,14 +436,81 @@ function renderDir(){
   $('dirCount').textContent = rows.length;
   $('dirTbl').querySelector('tbody').innerHTML = rows.map(v=>`<tr>
     <td>${esc(v.name)}</td><td>${esc(v.center)}</td>
-    <td>${esc(v.whatsapp)}</td><td>${esc(v.email)}</td>
+    <td>${contactLinks(v)}</td><td>${esc(v.email)}</td>
     <td>${iePill(v.ie_status)}</td><td>${esc(v.pincode)}</td>
     <td>${prefPill(v.preference)}</td><td style="white-space:normal;color:var(--muted)">${esc(v.languages)}</td>
-  </tr>`).join('') || '<tr><td colspan="8" style="color:var(--muted);padding:18px">No matches.</td></tr>';
+    <td>${callStatusPill(v.id)}<button class="logbtn" onclick="openCallModal(${v.id})">Log call</button></td>
+  </tr>`).join('') || '<tr><td colspan="9" style="color:var(--muted);padding:18px">No matches.</td></tr>';
 }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
 
 document.querySelectorAll('#dirTbl thead th').forEach(th=>th.onclick=()=>{ const k=th.dataset.k; if(sortK===k)asc=!asc; else{sortK=k;asc=true;} renderDir(); });
+
+// -------- call log modal --------
+function openCallModal(vid){
+  CM_VID=vid;
+  const v=VOLS.find(x=>x.id===vid); if(!v) return;
+  $('cmName').textContent = v.name || '(no name)';
+  $('cmMeta').textContent = (v.center||'') + ' · ' + (v.pincode||'');
+  $('cmContacts').innerHTML = contactLinks(v);
+  $('cmOutcome').value='Connected'; $('cmNotes').value='';
+  $('cmMsg').textContent=''; $('cmMsg').className='msg';
+  renderCallHistory(vid);
+  $('callModal').classList.remove('hide');
+}
+function closeCallModal(){ $('callModal').classList.add('hide'); CM_VID=null; }
+function renderCallHistory(vid){
+  const hist=CALLS.filter(c=>c.volunteer_id===vid);
+  $('cmHistory').innerHTML = hist.length
+    ? '<div class="sub" style="margin-bottom:6px">Call history (' + hist.length + ')</div>' +
+      hist.map(c=>`<div class="callrow"><span class="o" style="color:${OUTCOME_COLOR[c.outcome]||'#eafff3'}">${esc(c.outcome)}</span>`+
+        ` — ${esc(c.caller_name||c.caller_email||'unknown')}<br>`+
+        `<span class="m">${new Date(c.called_at).toLocaleString('en-IN')}</span>`+
+        (c.notes? `<div>${esc(c.notes)}</div>` : '')+`</div>`).join('')
+    : '<div class="sub" style="margin-top:8px">No calls logged yet.</div>';
+}
+async function submitCall(){
+  if(CM_VID==null) return;
+  const outcome=$('cmOutcome').value, notes=$('cmNotes').value.trim();
+  const {error} = await sb.from('hs_call_logs').insert({
+    volunteer_id: CM_VID, outcome, notes: notes||null,
+    caller_name: PROFILE.full_name||null, caller_email: PROFILE.email||null
+  });
+  if(error){ setMsg('cmMsg', error.message, false); return; }
+  setMsg('cmMsg','Saved.', true);
+  const {data:calls} = await sb.from('hs_call_logs').select('*').order('called_at',{ascending:false});
+  CALLS = calls||[];
+  $('cmNotes').value='';
+  renderCallHistory(CM_VID);
+  renderDir();
+  renderCallSummary();
+}
+function renderCallSummary(){
+  $('callCount').textContent = CALLS.length;
+  const by={};
+  CALLS.forEach(c=>{ by[c.outcome]=(by[c.outcome]||0)+1; });
+  $('callSummary').textContent = Object.keys(by).length
+    ? Object.entries(by).map(([k,v])=>k+': '+v).join(' · ')
+    : 'No calls logged yet.';
+}
+function exportCallsCSV(){
+  const vmap={}; VOLS.forEach(v=>vmap[v.id]=v);
+  const rows=[['Called At','Centre','Name','WhatsApp','Calling','Outcome','Notes','Logged By']];
+  CALLS.slice().sort((a,b)=>new Date(a.called_at)-new Date(b.called_at)).forEach(c=>{
+    const v=vmap[c.volunteer_id]||{};
+    rows.push([
+      new Date(c.called_at).toLocaleString('en-IN'), v.center||'', v.name||'',
+      v.whatsapp||'', v.calling||'', c.outcome||'', (c.notes||'').replace(/\s+/g,' '),
+      c.caller_name||c.caller_email||''
+    ]);
+  });
+  const csv = rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='hasirushaale_call_remarks_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
 
 // -------- admin --------
 async function loadPending(){
