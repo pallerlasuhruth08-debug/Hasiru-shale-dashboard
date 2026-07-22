@@ -163,6 +163,12 @@
       <div id="pendList"></div>
     </div>
 
+    <div id="userMgmtPanel" class="panel hide" style="margin-bottom:18px">
+      <h2>Manage Users <span id="userCount" style="color:var(--edge)"></span></h2>
+      <div class="sub" style="margin-bottom:10px">Two access levels: <b>Volunteer</b> sees the directory; <b>Admin</b> can additionally approve sign-ups and grant/remove admin access.</div>
+      <div id="userList"></div>
+    </div>
+
     <div class="kpis" id="kpis"></div>
 
     <div class="grid2">
@@ -318,7 +324,8 @@ async function route(){
 // -------- app --------
 async function loadApp(){
   show('appView');
-  $('whoName').innerHTML = (PROFILE.full_name? PROFILE.full_name+'<br>':'') + (PROFILE.email||'') + (PROFILE.role==='admin'?' · <b style="color:var(--edge)">admin</b>':'');
+  $('whoName').innerHTML = (PROFILE.full_name? PROFILE.full_name+'<br>':'') + (PROFILE.email||'') +
+    (PROFILE.role==='admin' ? ' · <b style="color:var(--edge)">admin</b>' : ' · <b style="color:var(--g2)">volunteer</b>');
   const {data,error} = await sb.from('hs_volunteers').select('*').order('center').order('name');
   if(error){ $('foot').textContent='Could not load directory: '+error.message; return; }
   VOLS = data||[];
@@ -329,7 +336,7 @@ async function loadApp(){
   renderCenterChart();
   renderDir();
   renderCallSummary();
-  if(PROFILE.role==='admin'){ $('adminPanel').classList.remove('hide'); loadPending(); }
+  if(PROFILE.role==='admin'){ $('adminPanel').classList.remove('hide'); $('userMgmtPanel').classList.remove('hide'); loadPending(); loadUsers(); }
   $('appSub').textContent = VOLS.length + ' volunteers across ' + new Set(VOLS.map(v=>v.center)).size + ' centres · live from database';
   $('foot').innerHTML = 'Access is restricted to approved users. Data is served only after authentication and approval (row-level security). '+
     'IE status verified against Ishangam. Volunteering preference from the sign-up form; “Not specified” = left blank.';
@@ -522,15 +529,49 @@ async function loadPending(){
   $('pendList').innerHTML = list.map(p=>`<div class="pending" data-id="${p.id}">
     <div><div class="e">${esc(p.full_name||'(no name)')}</div><div class="sub">${esc(p.email||'')}</div></div>
     <div class="g">
+      <select id="role_${p.id}" style="width:auto;padding:6px 8px;font-size:12px">
+        <option value="user" selected>Volunteer</option>
+        <option value="admin">Admin</option>
+      </select>
       <button class="btn sm" onclick="approve('${p.id}',true)">Approve</button>
       <button class="btn ghost sm" onclick="approve('${p.id}',false)">Dismiss</button>
     </div></div>`).join('');
 }
 async function approve(id, ok){
   if(!ok){ document.querySelector('.pending[data-id="'+id+'"]').style.opacity=.4; return; }
-  const {error} = await sb.from('hs_profiles').update({approved:true}).eq('id',id);
+  const roleSel = $('role_'+id);
+  const role = roleSel ? roleSel.value : 'user';
+  const {error} = await sb.from('hs_profiles').update({approved:true, role}).eq('id',id);
   if(error){ alert('Could not approve: '+error.message); return; }
   loadPending();
+  loadUsers();
+}
+
+// -------- manage users (admin) --------
+async function loadUsers(){
+  const {data,error} = await sb.from('hs_profiles').select('*').eq('approved',true).order('full_name');
+  if(error){ $('userList').innerHTML='<div class="sub">'+error.message+'</div>'; return; }
+  const {data:{session}} = await sb.auth.getSession();
+  const meId = session?.user?.id;
+  const list = data||[];
+  $('userCount').textContent = list.length? '('+list.length+')':'';
+  $('userList').innerHTML = list.length ? list.map(u=>{
+    const roleBadge = u.role==='admin'
+      ? '<span class="pill" style="background:#facc1522;color:var(--edge);margin-left:8px">admin</span>'
+      : '<span class="pill" style="background:#4ade8022;color:var(--g2);margin-left:8px">volunteer</span>';
+    let action;
+    if(u.id===meId) action = '<span class="sub">(you)</span>';
+    else if(u.role==='admin') action = `<button class="btn ghost sm" onclick="setRole('${u.id}','user')">Remove admin</button>`;
+    else action = `<button class="btn sm" onclick="setRole('${u.id}','admin')">Make admin</button>`;
+    return `<div class="pending" data-uid="${u.id}">
+      <div><div class="e">${esc(u.full_name||'(no name)')}${roleBadge}</div><div class="sub">${esc(u.email||'')}</div></div>
+      <div class="g">${action}</div></div>`;
+  }).join('') : '<div class="sub" style="padding:6px 0">No approved users yet.</div>';
+}
+async function setRole(id, role){
+  const {error} = await sb.from('hs_profiles').update({role}).eq('id',id);
+  if(error){ alert('Could not update role: '+error.message); return; }
+  loadUsers();
 }
 
 // -------- boot --------
