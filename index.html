@@ -36,19 +36,17 @@
   code{background:#eef3e8;border-radius:4px;padding:1px 5px;font-size:12px;color:var(--g2)}
   .panel{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 1px 3px rgba(20,40,25,.06)}
   .panel h2{font-size:13.5px;margin:0 0 14px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.6px}
+  .admin-drop summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}
+  .admin-drop summary::-webkit-details-marker{display:none}
+  .admin-drop summary::before{content:'▸';display:inline-block;color:var(--muted);font-size:11px;transition:transform .15s}
+  .admin-drop[open] summary::before{transform:rotate(90deg)}
+  .admin-drop .adminBody{margin-top:16px;display:flex;flex-direction:column;gap:18px}
   .msg{font-size:13px;margin-top:12px;min-height:18px}
   .msg.err{color:var(--bad)} .msg.ok{color:var(--g2)}
-  /* auth */
-  .authbox{max-width:400px;margin:8vh auto 0}
-  .authcard{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:18px;padding:26px 24px;box-shadow:0 1px 3px rgba(20,40,25,.06)}
-  .tabs{display:flex;gap:8px;margin:16px 0 18px}
-  .tabs button{flex:1;padding:9px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--muted);font-weight:700;cursor:pointer}
-  .tabs button.active{background:var(--g5);color:#eafff3;border-color:var(--g5)}
   .field{margin-bottom:12px}
   .field label{display:block;font-size:12px;color:var(--muted);margin:0 0 5px}
   /* app */
   .topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
-  .topbar .who{margin-left:auto;text-align:right;font-size:12px;color:var(--muted)}
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
   .kpi{background:linear-gradient(150deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:0 1px 3px rgba(20,40,25,.06)}
   .kpi .v{font-size:26px;font-weight:800;line-height:1}
@@ -96,7 +94,6 @@
     h1{font-size:18px}
     .leaf{font-size:26px}
     .topbar{gap:10px}
-    .topbar .who{margin-left:0;text-align:left;width:100%}
     .kpis{grid-template-columns:repeat(2,1fr)}
     .kpi{padding:11px 12px}
     .kpi .v{font-size:20px}
@@ -110,41 +107,6 @@
 </head>
 <body>
 
-<!-- ===================== AUTH VIEW ===================== -->
-<div id="authView" class="hide">
-  <div class="authbox">
-    <div style="text-align:center;margin-bottom:14px">
-      <div class="leaf">🌱</div>
-      <h1>#HasiruShaale Volunteer Portal</h1>
-      <div class="sub">Green School volunteer directory — sign in to continue</div>
-    </div>
-    <div class="authcard">
-      <div class="tabs">
-        <button id="tabLogin" class="active" onclick="showAuth('login')">Log in</button>
-        <button id="tabSignup" onclick="showAuth('signup')">Sign up</button>
-      </div>
-      <div class="field"><label>Email</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com"/></div>
-      <div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="••••••••"/></div>
-      <div class="field" id="nameField"><label>Full name</label><input id="fullName" type="text" placeholder="Your name"/></div>
-      <button class="btn" id="authBtn" style="width:100%" onclick="doAuth()">Log in</button>
-      <div class="msg" id="authMsg"></div>
-    </div>
-    <div class="foot">Access is approval-based. New sign-ups are reviewed by an administrator before the directory unlocks.</div>
-  </div>
-</div>
-
-<!-- ===================== PENDING VIEW ===================== -->
-<div id="pendingView" class="hide">
-  <div class="authbox">
-    <div class="authcard" style="text-align:center">
-      <div class="leaf">⏳</div>
-      <h1 style="font-size:20px;margin-top:8px">Awaiting approval</h1>
-      <p class="sub" id="pendingMsg" style="margin:12px 0 18px;line-height:1.6"></p>
-      <button class="btn ghost" onclick="signOut()">Sign out</button>
-    </div>
-  </div>
-</div>
-
 <!-- ===================== APP VIEW ===================== -->
 <div id="appView" class="hide">
   <div class="wrap">
@@ -154,22 +116,25 @@
         <h1>#HasiruShaale — Volunteer Portal</h1>
         <div class="sub" id="appSub"></div>
       </div>
-      <div class="who">
-        <div id="whoName"></div>
-        <button class="btn ghost sm" style="margin-top:6px" onclick="signOut()">Sign out</button>
+    </div>
+
+    <details id="adminSection" class="panel admin-drop" style="margin-bottom:18px">
+      <summary style="font-size:13.5px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.6px">Admin
+        <span id="adminBadge" class="pill" style="background:#facc1522;color:var(--edge);text-transform:none;letter-spacing:normal"></span>
+      </summary>
+      <div class="adminBody">
+        <div id="adminPanel">
+          <h2>Pending approvals <span id="pendCount" style="color:var(--edge)"></span></h2>
+          <div id="pendList"></div>
+        </div>
+
+        <div id="userMgmtPanel">
+          <h2>Manage Users <span id="userCount" style="color:var(--edge)"></span></h2>
+          <div class="sub" style="margin-bottom:10px">Two access levels: <b>Volunteer</b> sees the directory; <b>Admin</b> can additionally approve sign-ups and grant/remove admin access.</div>
+          <div id="userList"></div>
+        </div>
       </div>
-    </div>
-
-    <div id="adminPanel" class="panel hide" style="margin-bottom:18px">
-      <h2>Pending approvals <span id="pendCount" style="color:var(--edge)"></span></h2>
-      <div id="pendList"></div>
-    </div>
-
-    <div id="userMgmtPanel" class="panel hide" style="margin-bottom:18px">
-      <h2>Manage Users <span id="userCount" style="color:var(--edge)"></span></h2>
-      <div class="sub" style="margin-bottom:10px">Two access levels: <b>Volunteer</b> sees the directory; <b>Admin</b> can additionally approve sign-ups and grant/remove admin access.</div>
-      <div id="userList"></div>
-    </div>
+    </details>
 
     <div class="kpis" id="kpis"></div>
 
@@ -290,68 +255,17 @@ const sb = supabase.createClient(SB_URL, SB_KEY);
 const EDGE = new Set(["KA - not identified","KA - Others","No Ishangam record","Outside Karnataka","Staff / Coordinators"]);
 const PC = {c:'#b45309', d:'#15803d', l:'#0369a1', ns:'#475569'};
 const $ = id => document.getElementById(id);
-let MODE='login', PROFILE=null, VOLS=[], CALLS=[], ieChart=null, prefChart=null, centerChart=null, sortK='name', asc=true, CM_VID=null;
+let VOLS=[], CALLS=[], ieChart=null, prefChart=null, centerChart=null, sortK='name', asc=true, CM_VID=null;
 const OUTCOME_COLOR = {Connected:'#0369a1','No Answer':'#a16207','Not Interested':'#b91c1c',Confirmed:'#15803d','Callback Later':'#7e22ce'};
 const PAGE_SIZE = 50;
 let dirPage = 1, MSG_QUEUE = [], MSG_IDX = 0;
 
-function show(view){ ['boot','authView','pendingView','appView'].forEach(v=>$(v).classList.add('hide')); $(view).classList.remove('hide'); }
-
-// -------- auth UI --------
-function showAuth(mode){
-  MODE=mode;
-  $('tabLogin').classList.toggle('active', mode==='login');
-  $('tabSignup').classList.toggle('active', mode==='signup');
-  $('nameField').classList.toggle('hide', mode!=='signup');
-  $('authBtn').textContent = mode==='login' ? 'Log in' : 'Create account';
-  $('password').setAttribute('autocomplete', mode==='login'?'current-password':'new-password');
-  $('authMsg').textContent=''; $('authMsg').className='msg';
-  show('authView');
-}
+function show(view){ ['boot','appView'].forEach(v=>$(v).classList.add('hide')); $(view).classList.remove('hide'); }
 function setMsg(el,text,ok){ const e=$(el); e.textContent=text; e.className='msg '+(ok?'ok':'err'); }
-
-async function doAuth(){
-  const email=$('email').value.trim().toLowerCase(), password=$('password').value;
-  if(!email||!password){ setMsg('authMsg','Enter your email and password.',false); return; }
-  $('authBtn').disabled=true;
-  try{
-    if(MODE==='signup'){
-      const fullName=$('fullName').value.trim();
-      const {data,error}=await sb.auth.signUp({email,password,options:{data:{full_name:fullName}}});
-      if(error) throw error;
-      if(!data.session){ await sb.auth.signInWithPassword({email,password}); }
-      await route();
-    } else {
-      const {error}=await sb.auth.signInWithPassword({email,password});
-      if(error) throw error;
-      await route();
-    }
-  }catch(e){ setMsg('authMsg', e.message||'Something went wrong.', false); }
-  $('authBtn').disabled=false;
-}
-
-async function signOut(){ await sb.auth.signOut(); PROFILE=null; showAuth('login'); }
-
-// -------- routing --------
-async function route(){
-  const {data:{session}} = await sb.auth.getSession();
-  if(!session){ showAuth('login'); return; }
-  const {data:prof,error} = await sb.from('hs_profiles').select('*').eq('id',session.user.id).maybeSingle();
-  if(error){ showAuth('login'); setMsg('authMsg',error.message,false); return; }
-  PROFILE = prof || {email:session.user.email, approved:false, role:'user'};
-  if(PROFILE.approved){ await loadApp(); }
-  else {
-    $('pendingMsg').innerHTML = 'Your account (<b>'+ (PROFILE.email||session.user.email) +'</b>) is registered but not yet approved. '+
-      'An administrator will review it shortly. You’ll see the directory here once approved.';
-    show('pendingView');
-  }
-}
 
 // -------- app --------
 async function loadApp(){
   show('appView');
-  $('whoName').innerHTML = (PROFILE.full_name? PROFILE.full_name+'<br>':'') + (PROFILE.email||'') +
-    (PROFILE.role==='admin' ? ' · <b style="color:var(--edge)">admin</b>' : ' · <b style="color:var(--g2)">volunteer</b>');
   const {data,error} = await sb.from('hs_volunteers').select('*').order('center').order('name');
   if(error){ $('foot').textContent='Could not load directory: '+error.message; return; }
   VOLS = data||[];
@@ -362,9 +276,9 @@ async function loadApp(){
   renderCenterChart();
   renderDir();
   renderCallSummary();
-  if(PROFILE.role==='admin'){ $('adminPanel').classList.remove('hide'); $('userMgmtPanel').classList.remove('hide'); loadPending(); loadUsers(); }
+  loadPending(); loadUsers();
   $('appSub').textContent = VOLS.length + ' volunteers across ' + new Set(VOLS.map(v=>v.center)).size + ' centres · live from database';
-  $('foot').innerHTML = 'Access is restricted to approved users. Data is served only after authentication and approval (row-level security). '+
+  $('foot').innerHTML = 'Public dashboard — no login required. '+
     'IE status verified against Ishangam. Volunteering preference from the sign-up form; “Not specified” = left blank.';
 }
 
@@ -391,6 +305,7 @@ function renderMetrics(){
   ieChart && ieChart.destroy();
   ieChart = new Chart($('ieDonut'),{type:'doughnut',
     data:{labels:['Completed','Not completed','No Ishangam record'],datasets:[{data:[y,n,nf],backgroundColor:['#22c55e','#fde68a','#6b7280'],borderColor:'#ffffff',borderWidth:3}]},
+    plugins:[doughnutValueLabels],
     options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
   $('ieLegend').innerHTML = `<span><i class="dot" style="background:#22c55e"></i>Completed ${y}</span>
     <span><i class="dot" style="background:#fde68a"></i>Not completed ${n}</span>
@@ -399,12 +314,54 @@ function renderMetrics(){
   prefChart && prefChart.destroy();
   prefChart = new Chart($('prefDonut'),{type:'doughnut',
     data:{labels:['Calling','Day Visit','Long-term (SSB)','Not specified'],datasets:[{data:[c,d,l,ns],backgroundColor:[PC.c,PC.d,PC.l,PC.ns],borderColor:'#ffffff',borderWidth:3}]},
+    plugins:[doughnutValueLabels],
     options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
   $('prefLegend').innerHTML = `<span><i class="dot" style="background:${PC.c}"></i>Calling ${c}</span>
     <span><i class="dot" style="background:${PC.d}"></i>Day Visit ${d}</span>
     <span><i class="dot" style="background:${PC.l}"></i>Long-term ${l}</span>
     <span><i class="dot" style="background:${PC.ns}"></i>Not specified ${ns}</span>`;
 }
+
+const doughnutValueLabels = {
+  id:'doughnutValueLabels',
+  afterDatasetsDraw(chart){
+    const {ctx} = chart;
+    const meta = chart.getDatasetMeta(0);
+    const data = chart.data.datasets[0].data;
+    ctx.save();
+    ctx.font = '700 12px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,.35)';
+    ctx.shadowBlur = 3;
+    meta.data.forEach((arc,i)=>{
+      const val = data[i];
+      if(!val) return;
+      const angle = (arc.startAngle + arc.endAngle)/2;
+      const radius = (arc.innerRadius + arc.outerRadius)/2;
+      const x = arc.x + Math.cos(angle)*radius;
+      const y = arc.y + Math.sin(angle)*radius;
+      ctx.fillText(val, x, y);
+    });
+    ctx.restore();
+  }
+};
+
+const barValueLabels = {
+  id:'barValueLabels',
+  afterDatasetsDraw(chart){
+    const {ctx} = chart;
+    const meta = chart.getDatasetMeta(0);
+    const data = chart.data.datasets[0].data;
+    ctx.save();
+    ctx.font = '700 11px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+    ctx.fillStyle = '#16241a';
+    ctx.textBaseline = 'middle';
+    meta.data.forEach((bar,i)=>{ ctx.fillText(data[i], bar.x+6, bar.y); });
+    ctx.restore();
+  }
+};
 
 function renderCenterChart(){
   const counts={};
@@ -416,7 +373,9 @@ function renderCenterChart(){
   centerChart = new Chart(canvas,{type:'bar',
     data:{labels:centers,datasets:[{label:'Volunteers',data:centers.map(c=>counts[c]),
       backgroundColor:'#16a34a',borderRadius:4,maxBarThickness:16}]},
+    plugins:[barValueLabels],
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      layout:{padding:{right:28}},
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.x+' volunteers'}}},
       scales:{
         x:{beginAtZero:true,ticks:{color:'#5c6b60',precision:0},grid:{color:'rgba(20,40,25,.08)'}},
@@ -560,7 +519,7 @@ async function submitCall(){
   const outcome=$('cmOutcome').value, notes=$('cmNotes').value.trim();
   const {error} = await sb.from('hs_call_logs').insert({
     volunteer_id: CM_VID, outcome, notes: notes||null,
-    caller_name: PROFILE.full_name||null, caller_email: PROFILE.email||null
+    caller_name: null, caller_email: null
   });
   if(error){ setMsg('cmMsg', error.message, false); return; }
   setMsg('cmMsg','Saved.', true);
@@ -604,6 +563,8 @@ async function loadPending(){
   if(error){ $('pendList').innerHTML='<div class="sub">'+error.message+'</div>'; return; }
   const list=data||[];
   $('pendCount').textContent = list.length? '('+list.length+')':'';
+  $('adminBadge').textContent = list.length? list.length+' pending':'';
+  $('adminBadge').style.display = list.length? 'inline-block':'none';
   if(!list.length){ $('pendList').innerHTML='<div class="sub" style="padding:6px 0">No pending sign-ups. 🎉</div>'; return; }
   $('pendList').innerHTML = list.map(p=>`<div class="pending" data-id="${p.id}">
     <div><div class="e">${esc(p.full_name||'(no name)')}</div><div class="sub">${esc(p.email||'')}</div></div>
@@ -630,18 +591,15 @@ async function approve(id, ok){
 async function loadUsers(){
   const {data,error} = await sb.from('hs_profiles').select('*').eq('approved',true).order('full_name');
   if(error){ $('userList').innerHTML='<div class="sub">'+error.message+'</div>'; return; }
-  const {data:{session}} = await sb.auth.getSession();
-  const meId = session?.user?.id;
   const list = data||[];
   $('userCount').textContent = list.length? '('+list.length+')':'';
   $('userList').innerHTML = list.length ? list.map(u=>{
     const roleBadge = u.role==='admin'
       ? '<span class="pill" style="background:#facc1522;color:var(--edge);margin-left:8px">admin</span>'
       : '<span class="pill" style="background:#4ade8022;color:var(--g2);margin-left:8px">volunteer</span>';
-    let action;
-    if(u.id===meId) action = '<span class="sub">(you)</span>';
-    else if(u.role==='admin') action = `<button class="btn ghost sm" onclick="setRole('${u.id}','user')">Remove admin</button>`;
-    else action = `<button class="btn sm" onclick="setRole('${u.id}','admin')">Make admin</button>`;
+    const action = u.role==='admin'
+      ? `<button class="btn ghost sm" onclick="setRole('${u.id}','user')">Remove admin</button>`
+      : `<button class="btn sm" onclick="setRole('${u.id}','admin')">Make admin</button>`;
     return `<div class="pending" data-uid="${u.id}">
       <div><div class="e">${esc(u.full_name||'(no name)')}${roleBadge}</div><div class="sub">${esc(u.email||'')}</div></div>
       <div class="g">${action}</div></div>`;
@@ -654,8 +612,7 @@ async function setRole(id, role){
 }
 
 // -------- boot --------
-sb.auth.onAuthStateChange((_e,_s)=>{ /* handled by explicit route() calls */ });
-(async ()=>{ try{ await route(); }catch(e){ showAuth('login'); } })();
+loadApp();
 </script>
 </body>
 </html>
